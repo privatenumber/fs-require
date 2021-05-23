@@ -14,6 +14,8 @@ import {
 	isDirectory,
 } from './utils';
 
+export type { FileSystem };
+
 const loaders: Loaders = { /*
 	loaderes are organized like this to keep them anonymous
 	in the call stack, like how the native loders behave.

@@ -1,8 +1,14 @@
 {
 	"name": "fs-require",
 	"version": "0.0.0-semantic-release",
-	"description": "Localize your Webpack bundle with multiple locales",
-	"keywords": [],
+	"description": "Create a require() function from any file-system",
+	"keywords": [
+		"fs-require",
+		"fs",
+		"require",
+		"memfs",
+		"testing"
+	],
 	"license": "MIT",
 	"repository": "privatenumber/fs-require",
 	"funding": "https://github.com/privatenumber/fs-require?sponsor=1",
@@ -25,7 +31,10 @@
 		}
 	},
 	"lint-staged": {
-		"*.{js,ts}": "eslint"
+		"*.{js,ts}": [
+			"eslint",
+			"jest --bail --findRelatedTests"
+		]
 	},
 	"devDependencies": {
 		"@pvtnbr/eslint-config-typescript": "^0.1.15",

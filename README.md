@@ -22,7 +22,7 @@ import { Volume } from 'memfs'
 import { createFsRequire } from 'fs-require'
 
 // Create a virtual fs from JSON
-const vol = Volume.fromJSON({
+const virtualFs = Volume.fromJSON({
     '/hello-world.js': `
         module.exports = function () {
             return 'Hello world!'
@@ -31,7 +31,7 @@ const vol = Volume.fromJSON({
 })
 
 // Create fsRequire
-const fsRequire = createFsRequire(vol)
+const fsRequire = createFsRequire(virtualFs)
 
 // Import virtual module
 const helloWorld = fsRequire('/hello-world')

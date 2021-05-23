@@ -23,11 +23,11 @@ import { createFsRequire } from 'fs-require'
 
 // Create a virtual fs from JSON
 const vol = Volume.fromJSON({
-	'/hello-world.js': `
-		module.exports = function () {
-			return 'Hello world!'
-		}
-	`
+    '/hello-world.js': `
+        module.exports = function () {
+            return 'Hello world!'
+        }
+    `
 })
 
 // Create fsRequire

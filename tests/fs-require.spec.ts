@@ -117,29 +117,66 @@ test('native module', () => {
 	expect(fsRequire('/index')).toBe(path);
 });
 
-test('mock fs', () => {
-	const randomNumber = Math.random().toString();
-	const vol = Volume.fromJSON({
-		'/index.js': `
-			const fs = require('fs');
-			fs.writeFileSync('/test-write', '${randomNumber}');
-		`,
+describe('mock fs', () => {
+	test('mock fs', () => {
+		const randomNumber = Math.random().toString();
+		const vol = Volume.fromJSON({
+			'/index.js': `
+				const fs = require('fs');
+				fs.writeFileSync('/test-write', '${randomNumber}');
+			`,
+		});
+		const fsRequire = createFsRequire(vol);
+
+		fsRequire('/index');
+		expect(vol.readFileSync('/test-write').toString()).toBe(randomNumber);
 	});
-	const fsRequire = createFsRequire(vol);
 
-	fsRequire('/index');
-	expect(vol.readFileSync('/test-write').toString()).toBe(randomNumber);
-});
+	test('mock fs - fs/promises fails', () => {
+		const vol = Volume.fromJSON({
+			'/index.js': `
+				const fs = require('fs/promises');
+			`,
+		});
+		const fsRequire = createFsRequire(vol);
 
-test('mock fs - fs/promises fails', () => {
-	const vol = Volume.fromJSON({
-		'/index.js': `
-			const fs = require('fs/promises');
-		`,
+		expect(() => fsRequire('/index')).toThrow('Cannot find module \'fs/promises\'');
 	});
-	const fsRequire = createFsRequire(vol);
 
-	expect(() => fsRequire('/index')).toThrow('Cannot find module \'fs/promises\'');
+	test('disabled', () => {
+		const vol = Volume.fromJSON({
+			'/index.js': `
+				const fs = require('fs');
+				module.exports = fs.readdirSync('${__dirname}');
+			`,
+		});
+
+		const fsRequire = createFsRequire(vol, {
+			fs: true,
+		});
+
+		const files = fsRequire('/index');
+		expect(files.includes('fs-require.spec.ts')).toBe(true);
+	});
+
+	test('custom', () => {
+		const randomNumber = Math.random().toString();
+		const customFs = Volume.fromJSON({
+			'/some-file': randomNumber,
+		});
+		const vol = Volume.fromJSON({
+			'/index.js': `
+				const fs = require('fs');
+				module.exports = fs.readFileSync('/some-file').toString();
+			`,
+		});
+
+		const fsRequire = createFsRequire(vol, {
+			fs: customFs,
+		});
+
+		expect(fsRequire('/index')).toBe(randomNumber);
+	});
 });
 
 test('Works with real fs', () => {

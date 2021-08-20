@@ -39,5 +39,31 @@ const helloWorld = fsRequire('/hello-world')
 console.log(helloWorld()) // Hello world!
 ```
 
+## ⚙️ API
+
+### createFsRequire(fs, options?)
+Returns a `require(modulePath)` function that resolves from the file-system passed in.
+
+#### fs
+Type: `FileSystem`
+
+Required
+
+The file-system to resolve requires from.
+
+#### options
+##### options.fs
+
+Type: `boolean | FileSystem`
+
+Code executed the virtual file-system may `require('fs')` and this may either pose as a security concern or yield inconsistent results as the virtual file won't not accessible through the actual `fs` module.
+
+By default `require('fs')` is shimmed to the file-system passed into `createFsRequire`.
+
+To disable this behavior and resolve to the real `fs` module, set this to `true`.
+
+You can also pass in a different file-system too.
+
+
 ## 👨‍👩‍👧 Related
 - [fs-monkey](https://github.com/streamich/fs-monkey) - By the same author of [memfs](https://github.com/streamich/memfs). Patches the global `require` to access a virtual fs.

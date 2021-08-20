@@ -72,7 +72,14 @@ const realRequire = require;
 
 let idCounter = 0;
 
-export const createFsRequire = (mfs: FileSystem) => {
+type Options = {
+	fs?: boolean | FileSystem;
+};
+
+export const createFsRequire = (
+	mfs: FileSystem,
+	options?: Options,
+) => {
 	idCounter += 1;
 	const fsRequireId = idCounter;
 	const moduleCache = new Map<string, Module>();
@@ -81,11 +88,19 @@ export const createFsRequire = (mfs: FileSystem) => {
 		const require = (modulePath: string) => {
 			if (!isFilePathPattern.test(modulePath)) {
 				const [moduleName, moduleSubpath] = getBareSpecifier(modulePath) ?? [];
+
 				if (moduleName === 'fs') {
-					if (moduleSubpath) {
-						throw new Error(`Cannot find module '${modulePath}'`);
+					const { fs } = options ?? {};
+					if (!fs) {
+						if (moduleSubpath) {
+							throw new Error(`Cannot find module '${modulePath}'`);
+						}
+						return mfs;
 					}
-					return mfs;
+
+					if (fs !== true) {
+						return fs;
+					}
 				}
 
 				return realRequire(modulePath);

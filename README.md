@@ -45,7 +45,7 @@ console.log(helloWorld()) // Hello world!
 Returns a `require(modulePath)` function that resolves from the file-system passed in.
 
 #### fs
-Type: File-system
+Type: `FileSystem`
 
 Required
 

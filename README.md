@@ -1,4 +1,4 @@
-# fs-require [![Latest version](https://badgen.net/npm/v/fs-require)](https://npm.im/fs-require) <!-- [![Monthly downloads](https://badgen.net/npm/dm/fs-require)](https://npm.im/fs-require) -->[![Install size](https://packagephobia.now.sh/badge?p=fs-require)](https://packagephobia.now.sh/result?p=fs-require) [![Bundle size](https://badgen.net/bundlephobia/minzip/fs-require)](https://bundlephobia.com/result?p=fs-require)
+# fs-require [![Latest version](https://badgen.net/npm/v/fs-require)](https://npm.im/fs-require) [![Monthly downloads](https://badgen.net/npm/dm/fs-require)](https://npm.im/fs-require) [![Install size](https://packagephobia.now.sh/badge?p=fs-require)](https://packagephobia.now.sh/result?p=fs-require) [![Bundle size](https://badgen.net/bundlephobia/minzip/fs-require)](https://bundlephobia.com/result?p=fs-require)
 
 Create a `require()` function from any file-system.
 

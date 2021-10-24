@@ -2,19 +2,20 @@ import vm from 'vm';
 import path from 'path';
 import Module from 'module';
 import {
-	FileSystem,
+	FileSystemLike,
 	fsRequire,
 	Loaders,
+	implicitExtensions,
 	loaderTypes,
 } from './types';
 import {
 	isFilePathPattern,
-	hasExtensionPattern,
+	hasValidExtensionPattern,
 	getBareSpecifier,
 	isDirectory,
 } from './utils';
 
-export type { FileSystem };
+export type { FileSystemLike as FileSystem };
 
 const loaders: Loaders = { /*
 	loaderes are organized like this to keep them anonymous
@@ -27,7 +28,6 @@ const loaders: Loaders = { /*
 
 /**
  * Extensionless JS files
- * Takes priority over .js file
  */
 loaders[''] = function (newModule, sourceCode, makeRequire, filename, id) {
 	const moduleWrappedSourceCode = Module.wrap(sourceCode);
@@ -52,11 +52,33 @@ loaders['.json'] = function (newModule, sourceCode) {
 	newModule.exports = JSON.parse(sourceCode);
 };
 
-function resolveImplicitExtension(
-	fs: FileSystem,
+type Resolved = {
+	extension: (typeof loaderTypes)[number];
+	filePath: string;
+}
+
+function resolve(
+	fs: FileSystemLike,
 	filePath: string,
-) {
-	for (const extension of loaderTypes) {
+): Resolved | null {
+	// Exact match
+	if (fs.existsSync(filePath)) {
+		if (isDirectory(fs, filePath)) {
+			return (
+				resolve(fs, path.join(filePath, 'index.js'))
+				|| resolve(fs, path.join(filePath, 'index.json'))
+			);
+		}
+
+		const extension = (filePath.match(hasValidExtensionPattern)?.[0] ?? '') as Resolved['extension'];
+		return {
+			extension,
+			filePath,
+		};
+	}
+
+	// Try extensions
+	for (const extension of implicitExtensions) {
 		const filePathWithExtension = filePath + extension;
 		if (fs.existsSync(filePathWithExtension)) {
 			return {
@@ -65,6 +87,7 @@ function resolveImplicitExtension(
 			};
 		}
 	}
+
 	return null;
 }
 
@@ -73,11 +96,11 @@ const realRequire = require;
 let idCounter = 0;
 
 type Options = {
-	fs?: boolean | FileSystem;
+	fs?: boolean | FileSystemLike;
 };
 
 export const createFsRequire = (
-	mfs: FileSystem,
+	mfs: FileSystemLike,
 	options?: Options,
 ) => {
 	idCounter += 1;
@@ -91,48 +114,53 @@ export const createFsRequire = (
 
 				if (moduleName === 'fs') {
 					const { fs } = options ?? {};
-					if (!fs) {
-						if (moduleSubpath) {
-							throw new Error(`Cannot find module '${modulePath}'`);
-						}
-						return mfs;
-					}
 
+					// If true, use native fs (can still be truthy)
 					if (fs !== true) {
-						return fs;
+						const shimFs = fs || mfs;
+
+						if (!moduleSubpath) {
+							return shimFs;
+						}
+
+						if (moduleSubpath === '/promises' && ('promises' in shimFs)) {
+							return shimFs.promises;
+						}
+
+						throw new Error(`Cannot find module '${modulePath}'`);
 					}
 				}
 
 				return realRequire(modulePath);
 			}
 
-			let filename = path.resolve(path.dirname(parentModule.filename), modulePath);
-			let pathExtension = filename.match(hasExtensionPattern)?.[0];
+			let filePath = path.resolve(path.dirname(parentModule.filename), modulePath);
 
-			if (!pathExtension) {
-				const resolvedPath = isDirectory(mfs, filename)
-					? resolveImplicitExtension(mfs, path.join(filename, 'index'))
-					: resolveImplicitExtension(mfs, filename);
+			const resolvedPath = resolve(mfs, filePath);
 
-				if (!resolvedPath) {
-					throw new Error(`Cannot find module '${modulePath}'`);
-				}
-
-				filename = resolvedPath.filePath;
-				pathExtension = resolvedPath.extension;
+			if (!resolvedPath) {
+				throw new Error(`Cannot find module '${modulePath}'`);
 			}
 
-			if (moduleCache.has(filename)) {
-				return moduleCache.get(filename)!.exports;
+			filePath = resolvedPath.filePath;
+
+			if (moduleCache.has(filePath)) {
+				return moduleCache.get(filePath)!.exports;
 			}
 
-			const newModule = new Module(filename, parentModule);
-			newModule.filename = filename;
+			const newModule = new Module(filePath, parentModule);
+			newModule.filename = filePath;
 
-			const sourceCode = mfs.readFileSync(filename).toString();
-			loaders[pathExtension](newModule, sourceCode, makeRequireFunction, filename, fsRequireId);
+			const sourceCode = mfs.readFileSync(filePath).toString();
+			loaders[resolvedPath.extension]?.(
+				newModule,
+				sourceCode,
+				makeRequireFunction,
+				filePath,
+				fsRequireId,
+			);
 
-			moduleCache.set(filename, newModule);
+			moduleCache.set(filePath, newModule);
 
 			return newModule.exports;
 		};

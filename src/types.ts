@@ -1,6 +1,7 @@
 import Module from 'module';
 
-export interface FileSystem {
+// These are the only methods fs-require needs to use
+export interface FileSystemLike {
 	readFileSync: (
 		path: string,
 		options?: Record<string, unknown>,
@@ -9,6 +10,7 @@ export interface FileSystem {
 	lstatSync: (path: string) => {
 		isDirectory: () => boolean;
 	};
+	promises?: unknown;
 }
 
 export type fsRequire = {
@@ -16,7 +18,8 @@ export type fsRequire = {
 	id: number;
 };
 
-export const loaderTypes = ['', '.js', '.json'] as const;
+export const implicitExtensions = ['.js', '.json'] as const;
+export const loaderTypes = ['', ...implicitExtensions] as const;
 
 export type Loaders = {
 	[key in typeof loaderTypes[number]]: undefined | ((

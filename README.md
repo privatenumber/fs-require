@@ -1,4 +1,4 @@
-# fs-require [![Latest version](https://badgen.net/npm/v/fs-require)](https://npm.im/fs-require) <!-- [![Monthly downloads](https://badgen.net/npm/dm/fs-require)](https://npm.im/fs-require) -->[![Install size](https://packagephobia.now.sh/badge?p=fs-require)](https://packagephobia.now.sh/result?p=fs-require) [![Bundle size](https://badgen.net/bundlephobia/minzip/fs-require)](https://bundlephobia.com/result?p=fs-require)
+# fs-require [![Latest version](https://badgen.net/npm/v/fs-require)](https://npm.im/fs-require) [![Monthly downloads](https://badgen.net/npm/dm/fs-require)](https://npm.im/fs-require) [![Install size](https://packagephobia.now.sh/badge?p=fs-require)](https://packagephobia.now.sh/result?p=fs-require) [![Bundle size](https://badgen.net/bundlephobia/minzip/fs-require)](https://bundlephobia.com/result?p=fs-require)
 
 Create a `require()` function from any file-system.
 
@@ -63,6 +63,11 @@ By default `require('fs')` is shimmed to the file-system passed into `createFsRe
 To disable this behavior and resolve to the real `fs` module, set this to `true`.
 
 You can also pass in a different file-system too.
+
+
+## 💁‍♂️ FAQ
+### Can it resolve case insensitive paths?
+Case sensitivity in paths is a file-system concern so it would depend on the `fs` passed in. For example, [macOS (native fs) is case insensitive](https://discussions.apple.com/thread/251191099#:~:text=No.,have%20two%20files%20named%20File.). [memfs is case sensitive](https://github.com/streamich/memfs/issues/533).
 
 
 ## 👨‍👩‍👧 Related

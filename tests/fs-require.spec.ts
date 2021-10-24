@@ -10,7 +10,7 @@ describe('require js', () => {
 			'/index.js': `module.exports = ${randomNumber};`,
 		});
 		const fsRequire = createFsRequire(vol);
-	
+
 		expect(fsRequire('/index.js')).toBe(randomNumber);
 	});
 
@@ -20,7 +20,7 @@ describe('require js', () => {
 			'/index.js': `module.exports = ${randomNumber};`,
 		});
 		const fsRequire = createFsRequire(vol);
-	
+
 		expect(fsRequire('/index')).toBe(randomNumber);
 	});
 
@@ -30,17 +30,17 @@ describe('require js', () => {
 			'/index': `module.exports = ${randomNumber};`,
 		});
 		const fsRequire = createFsRequire(vol);
-	
+
 		expect(fsRequire('/index')).toBe(randomNumber);
 	});
-	
+
 	test('extensionless with invalid extension', () => {
 		const randomNumber = Math.random();
 		const vol = Volume.fromJSON({
 			'/index.asdf': `module.exports = ${randomNumber};`,
 		});
 		const fsRequire = createFsRequire(vol);
-	
+
 		expect(fsRequire('/index.asdf')).toBe(randomNumber);
 	});
 
@@ -50,11 +50,10 @@ describe('require js', () => {
 			'/index.js': 'module.exports = 2;',
 		});
 		const fsRequire = createFsRequire(vol);
-	
+
 		expect(fsRequire('/index')).toBe(1);
 	});
 });
-
 
 describe('require json', () => {
 	test('explicit extension', () => {
@@ -63,17 +62,17 @@ describe('require json', () => {
 			'/index.json': JSON.stringify({ value: randomNumber }),
 		});
 		const fsRequire = createFsRequire(vol);
-	
+
 		expect(fsRequire('/index.json').value).toBe(randomNumber);
 	});
-	
+
 	test('implicit extension', () => {
 		const randomNumber = Math.random();
 		const vol = Volume.fromJSON({
 			'/index.json': JSON.stringify({ value: randomNumber }),
 		});
 		const fsRequire = createFsRequire(vol);
-	
+
 		expect(fsRequire('/index').value).toBe(randomNumber);
 	});
 });

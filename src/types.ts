@@ -13,9 +13,11 @@ export interface FileSystemLike {
 	promises?: unknown;
 }
 
+export type ModuleCache = Record<string, Module>;
 export type fsRequire = {
 	(modulePath: string): any;
 	id: number;
+	cache: ModuleCache;
 };
 
 export const implicitExtensions = ['.js', '.json'] as const;

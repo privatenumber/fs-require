@@ -2,19 +2,14 @@ import vm from 'vm';
 import path from 'path';
 import Module from 'module';
 import {
+	Options,
 	FileSystemLike,
 	fsRequire,
 	Loaders,
-	implicitExtensions,
-	loaderTypes,
 	ModuleCache,
 } from './types';
-import {
-	isFilePathPattern,
-	hasValidExtensionPattern,
-	getBareSpecifier,
-	isDirectory,
-} from './utils';
+import { isBareSpecifier, resolveBareSpecifier } from './utils/resolve-bare-specifier';
+import { resolveModule } from './utils/resolve-module';
 
 export type { FileSystemLike as FileSystem };
 
@@ -53,52 +48,7 @@ loaders['.json'] = function (newModule, sourceCode) {
 	newModule.exports = JSON.parse(sourceCode);
 };
 
-type Resolved = {
-	extension: (typeof loaderTypes)[number];
-	filePath: string;
-}
-
-function resolve(
-	fs: FileSystemLike,
-	filePath: string,
-): Resolved | null {
-	// Exact match
-	if (fs.existsSync(filePath)) {
-		if (isDirectory(fs, filePath)) {
-			return (
-				resolve(fs, path.join(filePath, 'index.js'))
-				|| resolve(fs, path.join(filePath, 'index.json'))
-			);
-		}
-
-		const extension = (filePath.match(hasValidExtensionPattern)?.[0] ?? '') as Resolved['extension'];
-		return {
-			extension,
-			filePath,
-		};
-	}
-
-	// Try extensions
-	for (const extension of implicitExtensions) {
-		const filePathWithExtension = filePath + extension;
-		if (fs.existsSync(filePathWithExtension)) {
-			return {
-				extension,
-				filePath: filePathWithExtension,
-			};
-		}
-	}
-
-	return null;
-}
-
-const realRequire = require;
-
 let idCounter = 0;
-
-type Options = {
-	fs?: boolean | FileSystemLike;
-};
 
 export const createFsRequire = (
 	mfs: FileSystemLike,
@@ -109,41 +59,21 @@ export const createFsRequire = (
 	const moduleCache: ModuleCache = Object.create(null);
 
 	function makeRequireFunction(parentModule: Module): fsRequire {
-		const require = (modulePath: string) => {
-			if (!isFilePathPattern.test(modulePath)) {
-				const [moduleName, moduleSubpath] = getBareSpecifier(modulePath) ?? [];
+		const resolve = (modulePath: string) => {
+			if (isBareSpecifier(modulePath)) {
+				return modulePath;
+			}
+			const resolved = resolveModule(mfs, parentModule, modulePath);
+			return resolved.filePath;
+		};
 
-				if (moduleName === 'fs') {
-					const { fs } = options ?? {};
-
-					// If true, use native fs (can still be truthy)
-					if (fs !== true) {
-						const shimFs = fs || mfs;
-
-						if (!moduleSubpath) {
-							return shimFs;
-						}
-
-						if (moduleSubpath === '/promises' && ('promises' in shimFs)) {
-							return shimFs.promises;
-						}
-
-						throw new Error(`Cannot find module '${modulePath}'`);
-					}
-				}
-
-				return realRequire(modulePath);
+		const require: fsRequire = (modulePath: string) => {
+			if (isBareSpecifier(modulePath)) {
+				return resolveBareSpecifier(mfs, modulePath, options);
 			}
 
-			let filePath = path.resolve(path.dirname(parentModule.filename), modulePath);
-
-			const resolvedPath = resolve(mfs, filePath);
-
-			if (!resolvedPath) {
-				throw new Error(`Cannot find module '${modulePath}'`);
-			}
-
-			filePath = resolvedPath.filePath;
+			const resolvedPath = resolveModule(mfs, parentModule, modulePath);
+			const { filePath } = resolvedPath;
 
 			let importedModule = moduleCache[filePath];
 
@@ -167,6 +97,7 @@ export const createFsRequire = (
 		};
 
 		require.id = fsRequireId;
+		require.resolve = resolve;
 		require.cache = moduleCache;
 
 		return require;

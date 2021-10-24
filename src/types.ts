@@ -1,5 +1,9 @@
 import Module from 'module';
 
+export type Options = {
+	fs?: boolean | FileSystemLike;
+};
+
 // These are the only methods fs-require needs to use
 export interface FileSystemLike {
 	readFileSync: (
@@ -16,6 +20,7 @@ export interface FileSystemLike {
 export type ModuleCache = Record<string, Module>;
 export type fsRequire = {
 	(modulePath: string): any;
+	resolve: (modulePath: string) => string;
 	id: number;
 	cache: ModuleCache;
 };

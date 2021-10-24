@@ -1,14 +1,19 @@
-import { FileSystemLike } from './types';
+import { FileSystemLike, implicitExtensions } from './types';
 
 export const isFilePathPattern = /^[./]/;
-export const hasExtensionPattern = /\.\w+$/;
+export const hasValidExtensionPattern = new RegExp(
+	`(${
+		implicitExtensions
+			.map(extension => extension.replace(/\./g, '\\$&'))
+			.join('|')
+	})$`,
+);
 
 export const isDirectory = (
 	fs: FileSystemLike,
 	directoryPath: string,
 ) => (
-	fs.existsSync(directoryPath)
-	&& fs.lstatSync(directoryPath).isDirectory()
+	fs.lstatSync(directoryPath).isDirectory()
 );
 
 const specifierPattern = /^(?:node:)?((?:@[\da-z][\w.-]+\/)?[\da-z][\w.-]+)(\/.+)?$/;

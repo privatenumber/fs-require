@@ -3,7 +3,7 @@ import path from 'path';
 import { Volume } from 'memfs';
 import { createFsRequire } from '../src/fs-require';
 
-test('Require JS', () => {
+test('Require JS - explicit extension', () => {
 	const randomNumber = Math.random();
 	const vol = Volume.fromJSON({
 		'/index.js': `module.exports = ${randomNumber};`,
@@ -33,22 +33,40 @@ test('Require JS - extensionless', () => {
 	expect(fsRequire('/index')).toBe(randomNumber);
 });
 
-test('Require JSON', () => {
+test('Require JS - extensionless with invalid extension', () => {
 	const randomNumber = Math.random();
 	const vol = Volume.fromJSON({
-		'/data.json': JSON.stringify({ value: randomNumber }),
-		'/index.js': 'module.exports = require(\'./data.json\');',
+		'/index.asdf': `module.exports = ${randomNumber};`,
 	});
 	const fsRequire = createFsRequire(vol);
 
-	expect(fsRequire('/index').value).toBe(randomNumber);
+	expect(fsRequire('/index.asdf')).toBe(randomNumber);
+});
+
+test('Prefer exact match over implicit extension', () => {
+	const vol = Volume.fromJSON({
+		'/index': 'module.exports = 1;',
+		'/index.js': 'module.exports = 2;',
+	});
+	const fsRequire = createFsRequire(vol);
+
+	expect(fsRequire('/index')).toBe(1);
+});
+
+test('Require JSON - explicit extension', () => {
+	const randomNumber = Math.random();
+	const vol = Volume.fromJSON({
+		'/index.json': JSON.stringify({ value: randomNumber }),
+	});
+	const fsRequire = createFsRequire(vol);
+
+	expect(fsRequire('/index.json').value).toBe(randomNumber);
 });
 
 test('Require JSON - implicit extension', () => {
 	const randomNumber = Math.random();
 	const vol = Volume.fromJSON({
-		'/data.json': JSON.stringify({ value: randomNumber }),
-		'/index.js': 'module.exports = require(\'./data\');',
+		'/index.json': JSON.stringify({ value: randomNumber }),
 	});
 	const fsRequire = createFsRequire(vol);
 
@@ -69,15 +87,46 @@ test('Nested, relative, & absolute paths', () => {
 	expect(fsRequire('/index')).toBe(randomNumber);
 });
 
-test('implicit index', () => {
-	const randomNumber = Math.random();
-	const vol = Volume.fromJSON({
-		'/lib/index.js': `module.exports = ${randomNumber};`,
-		'/index.js': 'module.exports = require(\'./lib\');',
-	});
-	const fsRequire = createFsRequire(vol);
+describe('require directory', () => {
+	test('implicit index.js', () => {
+		const randomNumber = Math.random();
+		const vol = Volume.fromJSON({
+			'/directory/index.js': `module.exports = ${randomNumber};`,
+		});
+		const fsRequire = createFsRequire(vol);
 
-	expect(fsRequire('/index')).toBe(randomNumber);
+		expect(fsRequire('/directory')).toBe(randomNumber);
+	});
+
+	test('Prefer index.js in implicit directory', () => {
+		const vol = Volume.fromJSON({
+			'/directory/index': 'module.exports = 0;',
+			'/directory/index.js': 'module.exports = 1;',
+			'/directory/index.json': 'module.exports = 2;',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire('/directory')).toBe(1);
+	});
+
+	test('Prefer index.json in implicit directory', () => {
+		const vol = Volume.fromJSON({
+			'/directory/index': 'module.exports = 0;',
+			'/directory/index.json': '2',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire('/directory')).toBe(2);
+	});
+
+	test('should not match extensionless in implicit directory', () => {
+		const vol = Volume.fromJSON({
+			'/directory/index': 'module.exports = 0;',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(() => fsRequire('/directory')).toThrow('Cannot find module \'/directory\'');
+	});
 });
 
 test('__dirname, __filename', () => {

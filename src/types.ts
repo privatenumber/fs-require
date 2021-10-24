@@ -18,7 +18,8 @@ export type fsRequire = {
 	id: number;
 };
 
-export const loaderTypes = ['', '.js', '.json'] as const;
+export const implicitExtensions = ['.js', '.json'] as const;
+export const loaderTypes = ['', ...implicitExtensions] as const;
 
 export type Loaders = {
 	[key in typeof loaderTypes[number]]: undefined | ((

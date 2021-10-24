@@ -7,6 +7,7 @@ import {
 	Loaders,
 	implicitExtensions,
 	loaderTypes,
+	ModuleCache,
 } from './types';
 import {
 	isFilePathPattern,
@@ -105,7 +106,7 @@ export const createFsRequire = (
 ) => {
 	idCounter += 1;
 	const fsRequireId = idCounter;
-	const moduleCache = new Map<string, Module>();
+	const moduleCache: ModuleCache = Object.create(null);
 
 	function makeRequireFunction(parentModule: Module): fsRequire {
 		const require = (modulePath: string) => {
@@ -144,28 +145,29 @@ export const createFsRequire = (
 
 			filePath = resolvedPath.filePath;
 
-			if (moduleCache.has(filePath)) {
-				return moduleCache.get(filePath)!.exports;
+			let importedModule = moduleCache[filePath];
+
+			if (!importedModule) {
+				importedModule = new Module(filePath, parentModule);
+				importedModule.filename = filePath;
+
+				const sourceCode = mfs.readFileSync(filePath).toString();
+				loaders[resolvedPath.extension]?.(
+					importedModule,
+					sourceCode,
+					makeRequireFunction,
+					filePath,
+					fsRequireId,
+				);
+
+				moduleCache[filePath] = importedModule;
 			}
 
-			const newModule = new Module(filePath, parentModule);
-			newModule.filename = filePath;
-
-			const sourceCode = mfs.readFileSync(filePath).toString();
-			loaders[resolvedPath.extension]?.(
-				newModule,
-				sourceCode,
-				makeRequireFunction,
-				filePath,
-				fsRequireId,
-			);
-
-			moduleCache.set(filePath, newModule);
-
-			return newModule.exports;
+			return importedModule.exports;
 		};
 
 		require.id = fsRequireId;
+		require.cache = moduleCache;
 
 		return require;
 	}

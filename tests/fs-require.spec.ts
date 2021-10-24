@@ -286,6 +286,22 @@ test('Modules are cached', () => {
 	expect(values[0]).toBe(values[1]);
 });
 
+test('Cache API', () => {
+	const vol = Volume.fromJSON({
+		'/index.js': 'module.exports = Math.random();',
+	});
+	const fsRequire = createFsRequire(vol);
+
+	const value1 = fsRequire('/index');
+	const value2 = fsRequire('/index');
+	expect(value1).toBe(value2);
+
+	delete fsRequire.cache['/index.js'];
+	const value3 = fsRequire('/index');
+
+	expect(value2).not.toBe(value3);
+});
+
 test('Error stack', () => {
 	const vol = Volume.fromJSON({
 		'/index.js': 'module.exports = new Error(\'some error\');',

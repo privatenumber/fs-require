@@ -1,10 +1,10 @@
-import { FileSystem } from './types';
+import { FileSystemLike } from './types';
 
 export const isFilePathPattern = /^[./]/;
 export const hasExtensionPattern = /\.\w+$/;
 
 export const isDirectory = (
-	fs: FileSystem,
+	fs: FileSystemLike,
 	directoryPath: string,
 ) => (
 	fs.existsSync(directoryPath)

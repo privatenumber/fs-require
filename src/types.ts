@@ -1,6 +1,7 @@
 import Module from 'module';
 
-export interface FileSystem {
+// These are the only methods fs-require needs to use
+export interface FileSystemLike {
 	readFileSync: (
 		path: string,
 		options?: Record<string, unknown>,
@@ -9,6 +10,7 @@ export interface FileSystem {
 	lstatSync: (path: string) => {
 		isDirectory: () => boolean;
 	};
+	promises?: unknown;
 }
 
 export type fsRequire = {

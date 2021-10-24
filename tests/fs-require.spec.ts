@@ -195,6 +195,23 @@ describe('mock fs', () => {
 
 		expect(fsRequire('/index')).toBe(randomNumber);
 	});
+
+	// https://github.com/sindresorhus/eslint-plugin-unicorn/blob/8d8411b/docs/rules/prefer-node-protocol.md
+	// https://nodejs.org/api/esm.html#node-imports
+	// With native FS, only works from Node.js v16
+	test('node protocol', () => {
+		const randomNumber = Math.random().toString();
+		const vol = Volume.fromJSON({
+			'/index.js': `
+				const fs = require('node:fs');
+				fs.writeFileSync('/test-write', '${randomNumber}');
+			`,
+		});
+		const fsRequire = createFsRequire(vol);
+
+		fsRequire('/index');
+		expect(vol.readFileSync('/test-write').toString()).toBe(randomNumber);
+	});
 });
 
 test('Works with real fs', () => {

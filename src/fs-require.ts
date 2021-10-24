@@ -70,8 +70,6 @@ function resolveImplicitExtension(
 
 const realRequire = require;
 
-const isFsPattern = /^fs(?:\/.+)?$/;
-
 let idCounter = 0;
 
 type Options = {
@@ -91,7 +89,7 @@ export const createFsRequire = (
 			if (!isFilePathPattern.test(modulePath)) {
 				const [moduleName, moduleSubpath] = getBareSpecifier(modulePath) ?? [];
 
-				if (isFsPattern.test(moduleName)) {
+				if (moduleName === 'fs') {
 					const { fs } = options ?? {};
 
 					// If true, use native fs (can still be truthy)

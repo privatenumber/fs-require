@@ -11,7 +11,7 @@ export const isDirectory = (
 	&& fs.lstatSync(directoryPath).isDirectory()
 );
 
-const specifierPattern = /^((?:@[\da-z][\w.-]+\/)?[\da-z][\w.-]+)(\/.+)?$/;
+const specifierPattern = /^(?:node:)?((?:@[\da-z][\w.-]+\/)?[\da-z][\w.-]+)(\/.+)?$/;
 export const getBareSpecifier = (
 	modulePath: string,
 ) => modulePath.match(specifierPattern)?.slice(1, 3);

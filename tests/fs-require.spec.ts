@@ -3,88 +3,79 @@ import path from 'path';
 import { Volume } from 'memfs';
 import { createFsRequire } from '../src/fs-require';
 
-test('Require JS - explicit extension', () => {
-	const randomNumber = Math.random();
-	const vol = Volume.fromJSON({
-		'/index.js': `module.exports = ${randomNumber};`,
+describe('require js', () => {
+	test('explicit extension', () => {
+		const randomNumber = Math.random();
+		const vol = Volume.fromJSON({
+			'/index.js': `module.exports = ${randomNumber};`,
+		});
+		const fsRequire = createFsRequire(vol);
+	
+		expect(fsRequire('/index.js')).toBe(randomNumber);
 	});
-	const fsRequire = createFsRequire(vol);
 
-	expect(fsRequire('/index.js')).toBe(randomNumber);
+	test('implicit extension', () => {
+		const randomNumber = Math.random();
+		const vol = Volume.fromJSON({
+			'/index.js': `module.exports = ${randomNumber};`,
+		});
+		const fsRequire = createFsRequire(vol);
+	
+		expect(fsRequire('/index')).toBe(randomNumber);
+	});
+
+	test('extensionless', () => {
+		const randomNumber = Math.random();
+		const vol = Volume.fromJSON({
+			'/index': `module.exports = ${randomNumber};`,
+		});
+		const fsRequire = createFsRequire(vol);
+	
+		expect(fsRequire('/index')).toBe(randomNumber);
+	});
+	
+	test('extensionless with invalid extension', () => {
+		const randomNumber = Math.random();
+		const vol = Volume.fromJSON({
+			'/index.asdf': `module.exports = ${randomNumber};`,
+		});
+		const fsRequire = createFsRequire(vol);
+	
+		expect(fsRequire('/index.asdf')).toBe(randomNumber);
+	});
+
+	test('Prefer exact match over implicit extension', () => {
+		const vol = Volume.fromJSON({
+			'/index': 'module.exports = 1;',
+			'/index.js': 'module.exports = 2;',
+		});
+		const fsRequire = createFsRequire(vol);
+	
+		expect(fsRequire('/index')).toBe(1);
+	});
 });
 
-test('Require JS - implicit extension', () => {
-	const randomNumber = Math.random();
-	const vol = Volume.fromJSON({
-		'/index.js': `module.exports = ${randomNumber};`,
+
+describe('require json', () => {
+	test('explicit extension', () => {
+		const randomNumber = Math.random();
+		const vol = Volume.fromJSON({
+			'/index.json': JSON.stringify({ value: randomNumber }),
+		});
+		const fsRequire = createFsRequire(vol);
+	
+		expect(fsRequire('/index.json').value).toBe(randomNumber);
 	});
-	const fsRequire = createFsRequire(vol);
-
-	expect(fsRequire('/index')).toBe(randomNumber);
-});
-
-test('Require JS - extensionless', () => {
-	const randomNumber = Math.random();
-	const vol = Volume.fromJSON({
-		'/index': `module.exports = ${randomNumber};`,
+	
+	test('implicit extension', () => {
+		const randomNumber = Math.random();
+		const vol = Volume.fromJSON({
+			'/index.json': JSON.stringify({ value: randomNumber }),
+		});
+		const fsRequire = createFsRequire(vol);
+	
+		expect(fsRequire('/index').value).toBe(randomNumber);
 	});
-	const fsRequire = createFsRequire(vol);
-
-	expect(fsRequire('/index')).toBe(randomNumber);
-});
-
-test('Require JS - extensionless with invalid extension', () => {
-	const randomNumber = Math.random();
-	const vol = Volume.fromJSON({
-		'/index.asdf': `module.exports = ${randomNumber};`,
-	});
-	const fsRequire = createFsRequire(vol);
-
-	expect(fsRequire('/index.asdf')).toBe(randomNumber);
-});
-
-test('Prefer exact match over implicit extension', () => {
-	const vol = Volume.fromJSON({
-		'/index': 'module.exports = 1;',
-		'/index.js': 'module.exports = 2;',
-	});
-	const fsRequire = createFsRequire(vol);
-
-	expect(fsRequire('/index')).toBe(1);
-});
-
-test('Require JSON - explicit extension', () => {
-	const randomNumber = Math.random();
-	const vol = Volume.fromJSON({
-		'/index.json': JSON.stringify({ value: randomNumber }),
-	});
-	const fsRequire = createFsRequire(vol);
-
-	expect(fsRequire('/index.json').value).toBe(randomNumber);
-});
-
-test('Require JSON - implicit extension', () => {
-	const randomNumber = Math.random();
-	const vol = Volume.fromJSON({
-		'/index.json': JSON.stringify({ value: randomNumber }),
-	});
-	const fsRequire = createFsRequire(vol);
-
-	expect(fsRequire('/index').value).toBe(randomNumber);
-});
-
-test('Nested, relative, & absolute paths', () => {
-	const randomNumber = Math.random();
-	const vol = Volume.fromJSON({
-		'/root-file-d.js': `module.exports = function () { return ${randomNumber}; };`,
-		'/directory/nested/nested/file-c.js': 'module.exports = require(\'/root-file-d\')',
-		'/directory/file-b.js': 'module.exports = require(\'./nested/nested/file-c\')',
-		'/file-a.js': 'const fn = require(\'./directory/file-b\'); module.exports = fn();',
-		'/index.js': 'module.exports = require(\'./file-a\');',
-	});
-	const fsRequire = createFsRequire(vol);
-
-	expect(fsRequire('/index')).toBe(randomNumber);
 });
 
 describe('require directory', () => {
@@ -127,6 +118,20 @@ describe('require directory', () => {
 
 		expect(() => fsRequire('/directory')).toThrow('Cannot find module \'/directory\'');
 	});
+});
+
+test('Nested, relative, & absolute paths', () => {
+	const randomNumber = Math.random();
+	const vol = Volume.fromJSON({
+		'/root-file-d.js': `module.exports = function () { return ${randomNumber}; };`,
+		'/directory/nested/nested/file-c.js': 'module.exports = require(\'/root-file-d\')',
+		'/directory/file-b.js': 'module.exports = require(\'./nested/nested/file-c\')',
+		'/file-a.js': 'const fn = require(\'./directory/file-b\'); module.exports = fn();',
+		'/index.js': 'module.exports = require(\'./file-a\');',
+	});
+	const fsRequire = createFsRequire(vol);
+
+	expect(fsRequire('/index')).toBe(randomNumber);
 });
 
 test('__dirname, __filename', () => {

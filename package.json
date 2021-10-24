@@ -38,8 +38,8 @@
 	},
 	"devDependencies": {
 		"@pvtnbr/eslint-config": "^0.4.1",
-		"@types/jest": "^26.0.23",
-		"@types/node": "^15.6.0",
+		"@types/jest": "^26.0.24",
+		"@types/node": "^15.14.9",
 		"es-jest": "^1.2.0",
 		"eslint": "^7.32.0",
 		"esno": "^0.5.0",
@@ -47,7 +47,7 @@
 		"jest": "^26.6.3",
 		"lint-staged": "^10.5.4",
 		"memfs": "^3.2.2",
-		"typescript": "^4.2.4"
+		"typescript": "^4.4.4"
 	},
 	"eslintConfig": {
 		"extends": "@pvtnbr/eslint-config"

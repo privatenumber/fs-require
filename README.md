@@ -65,5 +65,10 @@ To disable this behavior and resolve to the real `fs` module, set this to `true`
 You can also pass in a different file-system too.
 
 
+## 💁‍♂️ FAQ
+### Can it resolve case insensitive paths?
+Case sensitivity in paths is a file-system concern so it would depend on the `fs` passed in. For example, [macOS (native fs) is case insensitive](https://discussions.apple.com/thread/251191099#:~:text=No.,have%20two%20files%20named%20File.). [memfs is case sensitive](https://github.com/streamich/memfs/issues/533).
+
+
 ## 👨‍👩‍👧 Related
 - [fs-monkey](https://github.com/streamich/fs-monkey) - By the same author of [memfs](https://github.com/streamich/memfs). Patches the global `require` to access a virtual fs.

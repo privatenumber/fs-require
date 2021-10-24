@@ -70,7 +70,7 @@ function resolveImplicitExtension(
 
 const realRequire = require;
 
-const isFsPattern = /^fs(\/.+)?$/;
+const isFsPattern = /^fs(?:\/.+)?$/;
 
 let idCounter = 0;
 
@@ -96,7 +96,7 @@ export const createFsRequire = (
 
 					// If true, use native fs (can still be truthy)
 					if (fs !== true) {
-						const shimFs = fs ? fs : mfs;
+						const shimFs = fs || mfs;
 
 						if (!moduleSubpath) {
 							return shimFs;

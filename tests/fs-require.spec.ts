@@ -159,23 +159,25 @@ describe('mock fs', () => {
 		expect(files.includes('fs-require.spec.ts')).toBe(true);
 	});
 
-	test('native fs promises', async () => {
-		const vol = Volume.fromJSON({
-			'/index.js': `
-				const fs = require('fs/promises');
-				module.exports = fs.readdir('${__dirname}');
-			`,
+	if (process.version.startsWith('v14.')) {
+		test('native fs promises', async () => {
+			const vol = Volume.fromJSON({
+				'/index.js': `
+					const fs = require('fs/promises');
+					module.exports = fs.readdir('${__dirname}');
+				`,
+			});
+
+			const fsRequire = createFsRequire(vol, {
+				fs: true,
+			});
+
+			const files = await fsRequire('/index');
+			expect(files.includes('fs-require.spec.ts')).toBe(true);
 		});
+	}
 
-		const fsRequire = createFsRequire(vol, {
-			fs: true,
-		});
-
-		const files = await fsRequire('/index');
-		expect(files.includes('fs-require.spec.ts')).toBe(true);
-	});
-
-	test('custom', () => {
+	test('custom fs', () => {
 		const randomNumber = Math.random().toString();
 		const customFs = Volume.fromJSON({
 			'/some-file': randomNumber,

@@ -132,18 +132,18 @@ describe('mock fs', () => {
 		expect(vol.readFileSync('/test-write').toString()).toBe(randomNumber);
 	});
 
-	test('mock fs - fs/promises fails', () => {
+	test('mock fs - fs/promises to access fs.promises', () => {
 		const vol = Volume.fromJSON({
 			'/index.js': `
-				const fs = require('fs/promises');
+				module.exports = require('fs/promises');
 			`,
 		});
 		const fsRequire = createFsRequire(vol);
 
-		expect(() => fsRequire('/index')).toThrow('Cannot find module \'fs/promises\'');
+		expect(fsRequire('/index')).toBe(vol.promises);
 	});
 
-	test('disabled', () => {
+	test('native fs', () => {
 		const vol = Volume.fromJSON({
 			'/index.js': `
 				const fs = require('fs');
@@ -159,7 +159,25 @@ describe('mock fs', () => {
 		expect(files.includes('fs-require.spec.ts')).toBe(true);
 	});
 
-	test('custom', () => {
+	if (process.version.startsWith('v14.')) {
+		test('native fs promises', async () => {
+			const vol = Volume.fromJSON({
+				'/index.js': `
+					const fs = require('fs/promises');
+					module.exports = fs.readdir('${__dirname}');
+				`,
+			});
+
+			const fsRequire = createFsRequire(vol, {
+				fs: true,
+			});
+
+			const files = await fsRequire('/index');
+			expect(files.includes('fs-require.spec.ts')).toBe(true);
+		});
+	}
+
+	test('custom fs', () => {
 		const randomNumber = Math.random().toString();
 		const customFs = Volume.fromJSON({
 			'/some-file': randomNumber,

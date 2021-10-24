@@ -2,7 +2,7 @@ import vm from 'vm';
 import path from 'path';
 import Module from 'module';
 import {
-	FileSystem,
+	FileSystemLike,
 	fsRequire,
 	Loaders,
 	loaderTypes,
@@ -14,7 +14,7 @@ import {
 	isDirectory,
 } from './utils';
 
-export type { FileSystem };
+export type { FileSystemLike as FileSystem };
 
 const loaders: Loaders = { /*
 	loaderes are organized like this to keep them anonymous
@@ -53,7 +53,7 @@ loaders['.json'] = function (newModule, sourceCode) {
 };
 
 function resolveImplicitExtension(
-	fs: FileSystem,
+	fs: FileSystemLike,
 	filePath: string,
 ) {
 	for (const extension of loaderTypes) {
@@ -70,14 +70,16 @@ function resolveImplicitExtension(
 
 const realRequire = require;
 
+const isFsPattern = /^fs(?:\/.+)?$/;
+
 let idCounter = 0;
 
 type Options = {
-	fs?: boolean | FileSystem;
+	fs?: boolean | FileSystemLike;
 };
 
 export const createFsRequire = (
-	mfs: FileSystem,
+	mfs: FileSystemLike,
 	options?: Options,
 ) => {
 	idCounter += 1;
@@ -89,17 +91,22 @@ export const createFsRequire = (
 			if (!isFilePathPattern.test(modulePath)) {
 				const [moduleName, moduleSubpath] = getBareSpecifier(modulePath) ?? [];
 
-				if (moduleName === 'fs') {
+				if (isFsPattern.test(moduleName)) {
 					const { fs } = options ?? {};
-					if (!fs) {
-						if (moduleSubpath) {
-							throw new Error(`Cannot find module '${modulePath}'`);
-						}
-						return mfs;
-					}
 
+					// If true, use native fs (can still be truthy)
 					if (fs !== true) {
-						return fs;
+						const shimFs = fs || mfs;
+
+						if (!moduleSubpath) {
+							return shimFs;
+						}
+
+						if (moduleSubpath === '/promises' && ('promises' in shimFs)) {
+							return shimFs.promises;
+						}
+
+						throw new Error(`Cannot find module '${modulePath}'`);
 					}
 				}
 

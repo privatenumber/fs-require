@@ -11,17 +11,17 @@ Create a `require()` function from any file-system.
 - 👻 Mocks `fs` within fsRequire
 - 👣 Call stack shows paths with `fs-require://` protocol
 
-## 🙋‍♀️ Why?
-Using fs-require with [memfs](https://github.com/streamich/memfs) is a great combination for writing tests that interact with the file-system.
-
-Testing functionality that interacts with the file-system can be brittle because they expect a clean slate and can also be dangerous if the path is wrong. Creating a virtual file-system with `memfs` and testing its contents with `fsRequire` makes it secure and fast!
-
-
 ## 🚀 Install
 
 ```bash
 npm i fs-require
 ```
+
+## 🙋‍♀️ Why?
+Using fs-require with [memfs](https://github.com/streamich/memfs) is a great combination for writing tests that interact with the file-system.
+
+Testing functionality that interacts with the file-system can be brittle because they expect a clean slate and can also be dangerous if the path is wrong. Creating a virtual file-system with `memfs` and testing its contents with `fsRequire` makes it secure and fast!
+
 
 ## 👨‍🏫 Usage
 

@@ -7,6 +7,7 @@ Create a `require()` function from any file-system.
 - 🪄 Resolves implicit entry `index` and implicit extensions `js` and `json`
 - 🗺 Resolves relative and absolute paths
 - 📍 `__dirname` & `__filename`
+- ✅ `require.resolve()` & `require.cache`
 - 👻 Mocks `fs` within fsRequire
 - 👣 Call stack shows paths with `fs-require://` protocol
 
@@ -42,7 +43,7 @@ console.log(helloWorld()) // Hello world!
 ## ⚙️ API
 
 ### createFsRequire(fs, options?)
-Returns a `require(modulePath)` function that resolves from the file-system passed in.
+Returns a `fsRequire(modulePath)` function that resolves from the file-system passed in.
 
 #### fs
 Type: `FileSystem`
@@ -64,6 +65,36 @@ To disable this behavior and resolve to the real `fs` module, set this to `true`
 
 You can also pass in a different file-system too.
 
+
+### fsRequire(modulePath)
+
+#### modulePath
+Type: `string`
+
+Required
+
+Path to the module you want to "require". Mocks Node.js [`require`](https://nodejs.org/api/modules.html#requireid).
+
+### fsRequire.resolve(modulePath)
+
+#### modulePath
+Type: `string`
+
+Required
+
+Path to the module you want to "resolve". Mocks Node.js [`require.resolve`](https://nodejs.org/api/modules.html#requireresolverequest-options).
+
+### fsRequire.cache
+
+Type: `Record<string, Module>`
+
+An object that contains the cache for modules that have been loaded so far. The key is the absolute path to the module, and the value is the module instance. Mocks Node.js [`require.cache`](https://nodejs.org/api/modules.html#requirecache).
+
+To re-load a module that has already been loaded, you can delete the cache the same way you would in Node.js:
+
+```js
+delete fsRequire.cache[fsRequire.resolve('/some-module.js')]
+```
 
 ## 💁‍♂️ FAQ
 ### Can it resolve case insensitive paths?

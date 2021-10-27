@@ -11,6 +11,8 @@ Create a `require()` function from any file-system.
 - 👻 Mocks `fs` within fsRequire
 - 👣 Call stack shows paths with `fs-require://` protocol
 
+<sub>Support this project by ⭐️ starring and sharing it. [Follow me](https://github.com/privatenumber) to see what other cool projects I'm working on! ❤️</sub>
+
 ## 🚀 Install
 
 ```bash

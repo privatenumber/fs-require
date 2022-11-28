@@ -7,7 +7,7 @@ specifiers:
   eslint: ^8.28.0
   lint-staged: ^13.0.4
   manten: ^0.5.0
-  memfs: ^3.2.2
+  memfs: ^3.4.12
   pkgroll: ^1.5.0
   simple-git-hooks: ^2.8.1
   tsx: ^3.12.1
@@ -20,7 +20,7 @@ devDependencies:
   eslint: 8.28.0
   lint-staged: 13.0.4
   manten: 0.5.0
-  memfs: 3.2.2
+  memfs: 3.4.12
   pkgroll: 1.5.0_typescript@4.9.3
   simple-git-hooks: 2.8.1
   tsx: 3.12.1
@@ -2382,8 +2382,8 @@ packages:
     resolution: {integrity: sha512-AW4DRS3QbBayY/jJmD8437V1Gombjf8RSOUCMFBuo5iHi58AGEgVCKQ+ezHkZZDpAQS75hcBMpLqjpJTjtUL7w==}
     dev: true
 
-  /memfs/3.2.2:
-    resolution: {integrity: sha512-RE0CwmIM3CEvpcdK3rZ19BC4E6hv9kADkMN5rPduRak58cNArWLi/9jFLsa4rhsjfVxMP3v0jO7FHXq7SvFY5Q==}
+  /memfs/3.4.12:
+    resolution: {integrity: sha512-BcjuQn6vfqP+k100e0E9m61Hyqa//Brp+I3f0OBmN0ATHlFA8vx3Lt8z57R3u2bPqe3WGDBC+nF72fTH7isyEw==}
     engines: {node: '>= 4.0.0'}
     dependencies:
       fs-monkey: 1.0.3

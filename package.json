@@ -21,7 +21,7 @@
 	],
 	"main": "dist/fs-require.js",
 	"scripts": {
-		"lint": "eslint .",
+		"lint": "eslint --cache .",
 		"build": "rm -rf dist && tsc",
 		"test": "jest"
 	},
@@ -32,16 +32,16 @@
 	},
 	"lint-staged": {
 		"*.{js,ts}": [
-			"eslint",
+			"eslint --cache",
 			"jest --bail --findRelatedTests"
 		]
 	},
 	"devDependencies": {
-		"@pvtnbr/eslint-config": "^0.4.1",
+		"@pvtnbr/eslint-config": "^0.33.0",
 		"@types/jest": "^26.0.24",
 		"@types/node": "^15.14.9",
 		"es-jest": "^1.2.0",
-		"eslint": "^7.32.0",
+		"eslint": "^8.28.0",
 		"esno": "^0.5.0",
 		"husky": "^4.3.8",
 		"jest": "^26.6.3",

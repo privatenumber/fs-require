@@ -30,6 +30,7 @@
 	"scripts": {
 		"prepare": "simple-git-hooks",
 		"lint": "eslint --cache .",
+		"type-check": "tsc --noEmit",
 		"build": "pkgroll --minify",
 		"test": "tsx tests",
 		"prepack": "pnpm build && clean-pkg-json"

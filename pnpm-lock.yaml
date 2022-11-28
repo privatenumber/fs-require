@@ -6,7 +6,6 @@ specifiers:
   '@types/node': ^15.14.9
   es-jest: ^1.2.0
   eslint: ^8.28.0
-  esno: ^0.5.0
   husky: ^4.3.8
   jest: ^26.6.3
   lint-staged: ^10.5.4
@@ -19,7 +18,6 @@ devDependencies:
   '@types/node': 15.14.9
   es-jest: 1.2.0
   eslint: 8.28.0
-  esno: 0.5.0
   husky: 4.3.8
   jest: 26.6.3
   lint-staged: 10.5.4
@@ -1880,19 +1878,6 @@ packages:
       is-symbol: 1.0.4
     dev: true
 
-  /esbuild-register/2.5.0:
-    resolution: {integrity: sha512-5a8W3rH7IQbIPR9pPXJFkC3+CRMtm/OSpBz3hkWUUU63oPZ3NU6dVDGfaIjKnRizCTIRoGjNE6KEDt5p1sLwEw==}
-    dependencies:
-      esbuild: 0.11.12
-      jsonc-parser: 3.0.0
-    dev: true
-
-  /esbuild/0.11.12:
-    resolution: {integrity: sha512-c8cso/1RwVj+fbDvLtUgSG4ZJQ0y9Zdrl6Ot/GAjyy4pdMCHaFnDMts5gqFnWRPLajWtEnI+3hlET4R9fVoZng==}
-    hasBin: true
-    requiresBuild: true
-    dev: true
-
   /esbuild/0.9.7:
     resolution: {integrity: sha512-VtUf6aQ89VTmMLKrWHYG50uByMF4JQlVysb8dmg6cOgW8JnFCipmz7p+HNBl+RR3LLCuBxFGVauAe2wfnF9bLg==}
     hasBin: true
@@ -2287,14 +2272,6 @@ packages:
       text-table: 0.2.0
     transitivePeerDependencies:
       - supports-color
-    dev: true
-
-  /esno/0.5.0:
-    resolution: {integrity: sha512-r0tsflar7RB918JCjTNyU2QWfgyH2jgfAzHK1tABr3A5y84ruS86JanVHc6wove/V5I98soLZbg8Foso1dqCMA==}
-    hasBin: true
-    dependencies:
-      esbuild: 0.9.7
-      esbuild-register: 2.5.0
     dev: true
 
   /espree/9.4.1:
@@ -3883,10 +3860,6 @@ packages:
       eslint-visitor-keys: 3.3.0
       espree: 9.4.1
       semver: 7.3.8
-    dev: true
-
-  /jsonc-parser/3.0.0:
-    resolution: {integrity: sha512-fQzRfAbIBnR0IQvftw9FJveWiHp72Fg20giDrHz6TdfB12UH/uue0D3hm57UB5KgAVuniLMCaS8P1IMj9NR7cA==}
     dev: true
 
   /jsprim/1.4.1:

@@ -27,12 +27,20 @@
 		"require": "./dist/index.cjs",
 		"import": "./dist/index.mjs"
 	},
+	"imports": {
+		"#fs-require": {
+			"types": "./src/index.ts",
+			"development": "./src/index.ts",
+			"default": "./dist/index.mjs"
+		}
+	},
 	"scripts": {
 		"prepare": "simple-git-hooks",
 		"lint": "eslint --cache .",
 		"type-check": "tsc --noEmit",
 		"build": "pkgroll --minify",
 		"test": "tsx tests",
+		"dev": "tsx watch --conditions=development tests",
 		"prepack": "pnpm build && clean-pkg-json"
 	},
 	"simple-git-hooks": {

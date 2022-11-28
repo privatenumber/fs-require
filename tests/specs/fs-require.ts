@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { testSuite, expect } from 'manten';
 import { Volume } from 'memfs';
-import { createFsRequire } from '../../src';
+import { createFsRequire } from '#fs-require';
 
 export default testSuite(({ describe }) => {
 	describe('fs-require', ({ test }) => {

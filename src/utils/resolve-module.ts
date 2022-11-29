@@ -17,18 +17,20 @@ type Resolved = {
 
 function resolveModuleSafe(
 	mfs: FileSystemLike,
-	parentModule: Module,
 	modulePath: string,
+	parentModule?: Module | null,
 ): Resolved | null {
 	// Absolute path
-	modulePath = path.resolve(path.dirname(parentModule.filename), modulePath);
+	if (!path.isAbsolute(modulePath) && parentModule) {
+		modulePath = path.resolve(path.dirname(parentModule.filename), modulePath);
+	}
 
 	// Exact match
 	if (mfs.existsSync(modulePath)) {
 		if (isDirectory(mfs, modulePath)) {
 			return (
-				resolveModuleSafe(mfs, parentModule, path.join(modulePath, 'index.js'))
-				|| resolveModuleSafe(mfs, parentModule, path.join(modulePath, 'index.json'))
+				resolveModuleSafe(mfs, path.join(modulePath, 'index.js'), parentModule)
+				|| resolveModuleSafe(mfs, path.join(modulePath, 'index.json'), parentModule)
 			);
 		}
 
@@ -55,10 +57,10 @@ function resolveModuleSafe(
 
 export function resolveModule(
 	mfs: FileSystemLike,
-	parentModule: Module,
 	modulePath: string,
+	parentModule?: Module | null,
 ) {
-	const resolved = resolveModuleSafe(mfs, parentModule, modulePath);
+	const resolved = resolveModuleSafe(mfs, modulePath, parentModule);
 
 	if (!resolved) {
 		throw new Error(`Cannot find module '${modulePath}'`);

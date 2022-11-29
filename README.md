@@ -2,18 +2,30 @@
 
 Create a `require()` function from any file-system.
 
+Pass in a [virtual file-system](https://github.com/streamich/memfs) for in-memory testing without writing to disk.
+
 ### Features
 - 💞 Works well with [memfs](https://github.com/streamich/memfs)!
 - 🪄 Resolves implicit entry `index` and implicit extensions `js` and `json`
 - 🗺 Resolves relative and absolute paths
 - 📍 `__dirname` & `__filename`
+- ✅ `require.resolve()` & `require.cache`
 - 👻 Mocks `fs` within fsRequire
 - 👣 Call stack shows paths with `fs-require://` protocol
+
+<sub>Support this project by ⭐️ starring and sharing it. [Follow me](https://github.com/privatenumber) to see what other cool projects I'm working on! ❤️</sub>
+
+## 🚀 Install
+
+```bash
+npm i fs-require
+```
 
 ## 🙋‍♀️ Why?
 Using fs-require with [memfs](https://github.com/streamich/memfs) is a great combination for writing tests that interact with the file-system.
 
 Testing functionality that interacts with the file-system can be brittle because they expect a clean slate and can also be dangerous if the path is wrong. Creating a virtual file-system with `memfs` and testing its contents with `fsRequire` makes it secure and fast!
+
 
 ## 👨‍🏫 Usage
 
@@ -42,7 +54,7 @@ console.log(helloWorld()) // Hello world!
 ## ⚙️ API
 
 ### createFsRequire(fs, options?)
-Returns a `require(modulePath)` function that resolves from the file-system passed in.
+Returns a `fsRequire(modulePath)` function that resolves from the file-system passed in.
 
 #### fs
 Type: `FileSystem`
@@ -64,6 +76,36 @@ To disable this behavior and resolve to the real `fs` module, set this to `true`
 
 You can also pass in a different file-system too.
 
+
+### fsRequire(modulePath)
+
+#### modulePath
+Type: `string`
+
+Required
+
+Path to the module you want to "require". Mocks Node.js [`require`](https://nodejs.org/api/modules.html#requireid).
+
+### fsRequire.resolve(modulePath)
+
+#### modulePath
+Type: `string`
+
+Required
+
+Path to the module you want to "resolve". Mocks Node.js [`require.resolve`](https://nodejs.org/api/modules.html#requireresolverequest-options).
+
+### fsRequire.cache
+
+Type: `Record<string, Module>`
+
+An object that contains the cache for modules that have been loaded so far. The key is the absolute path to the module, and the value is the module instance. Mocks Node.js [`require.cache`](https://nodejs.org/api/modules.html#requirecache).
+
+To re-load a module that has already been loaded, you can delete the cache the same way you would in Node.js:
+
+```js
+delete fsRequire.cache[fsRequire.resolve('/some-module.js')]
+```
 
 ## 💁‍♂️ FAQ
 ### Can it resolve case insensitive paths?

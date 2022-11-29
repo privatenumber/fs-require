@@ -66,8 +66,8 @@ packages:
       source-map-support: 0.5.21
     dev: true
 
-  /@esbuild-kit/esm-loader/2.5.1:
-    resolution: {integrity: sha512-UfG/KLaNGR48+C9e8cDrRowhN9u+d/aCKpnA3E3Zyevup76fIpKmzm8DWeNG40CbEN8ZN8HaEs+o63pRQrZ+Fw==}
+  /@esbuild-kit/esm-loader/2.5.2:
+    resolution: {integrity: sha512-8mF/cPFFvaO/yyzQPwlB+rMqCVw6S5X+MlVquvniUslwFSU5s2QXZhg3BAqndUKbIL7k1eMutVyMc9TCDRHSpw==}
     dependencies:
       '@esbuild-kit/core-utils': 3.0.0
       get-tsconfig: 4.2.0
@@ -3233,7 +3233,7 @@ packages:
     dependencies:
       '@esbuild-kit/cjs-loader': 2.4.1
       '@esbuild-kit/core-utils': 3.0.0
-      '@esbuild-kit/esm-loader': 2.5.1
+      '@esbuild-kit/esm-loader': 2.5.2
     optionalDependencies:
       fsevents: 2.3.2
     dev: true

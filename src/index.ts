@@ -58,12 +58,12 @@ export const createFsRequire = (
 	const fsRequireId = idCounter;
 	const moduleCache: ModuleCache = Object.create(null);
 
-	function makeRequireFunction(parentModule: Module): fsRequire {
+	function makeRequireFunction(parentModule?: Module | null): fsRequire {
 		const resolve = (modulePath: string) => {
 			if (isBareSpecifier(modulePath)) {
 				return modulePath;
 			}
-			const resolved = resolveModule(mfs, parentModule, modulePath);
+			const resolved = resolveModule(mfs, modulePath, parentModule);
 			return resolved.filePath;
 		};
 
@@ -72,13 +72,13 @@ export const createFsRequire = (
 				return resolveBareSpecifier(mfs, modulePath, options);
 			}
 
-			const resolvedPath = resolveModule(mfs, parentModule, modulePath);
+			const resolvedPath = resolveModule(mfs, modulePath, parentModule);
 			const { filePath } = resolvedPath;
 
 			let importedModule = moduleCache[filePath];
 
 			if (!importedModule) {
-				importedModule = new Module(filePath, parentModule);
+				importedModule = new Module(filePath, parentModule || undefined);
 				importedModule.filename = filePath;
 
 				const sourceCode = mfs.readFileSync(filePath).toString();
@@ -103,6 +103,5 @@ export const createFsRequire = (
 		return require;
 	}
 
-	// @ts-expect-error parent is deprecated
-	return makeRequireFunction(module.parent);
+	return makeRequireFunction(typeof module === 'undefined' ? undefined : module.parent);
 };

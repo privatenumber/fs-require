@@ -1,0 +1,37 @@
+{
+  "name": "fs-require",
+  "version": "0.0.0-semantic-release",
+  "description": "Create a require() function from any file-system",
+  "keywords": [
+    "fs-require",
+    "fs",
+    "require",
+    "memfs",
+    "testing"
+  ],
+  "license": "MIT",
+  "repository": "privatenumber/fs-require",
+  "funding": "https://github.com/privatenumber/fs-require?sponsor=1",
+  "author": {
+    "name": "Hiroki Osame",
+    "email": "hiroki.osame@gmail.com"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "types": "./dist/index.d.ts",
+    "require": "./dist/index.cjs",
+    "import": "./dist/index.mjs"
+  },
+  "imports": {
+    "#fs-require": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    }
+  }
+}

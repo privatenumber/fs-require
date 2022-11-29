@@ -2,6 +2,8 @@
 
 Create a `require()` function from any file-system.
 
+Pass in a [virtual file-system](https://github.com/streamich/memfs) for in-memory testing without writing to disk.
+
 ### Features
 - 💞 Works well with [memfs](https://github.com/streamich/memfs)!
 - 🪄 Resolves implicit entry `index` and implicit extensions `js` and `json`

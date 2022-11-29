@@ -19,13 +19,3 @@ export default testSuite(({ describe }) => {
 		});
 	});
 });
-
-// 			import { Volume } from 'memfs';
-// import { createFsRequire } from '../../dist/index.mjs';
-
-// const vol = Volume.fromJSON({
-// 	'/index.js': `module.exports = 123`,
-// });
-// const fsReq = createFsRequire(vol);
-
-// console.log(fsReq('/index'));

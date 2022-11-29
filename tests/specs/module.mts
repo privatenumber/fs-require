@@ -1,6 +1,6 @@
 import { testSuite, expect } from 'manten';
 import { Volume } from 'memfs';
-import { createFsRequire } from '../../dist/index.mjs';
+import { createFsRequire } from '#fs-require';
 
 export default testSuite(({ describe }) => {
 	describe('module', ({ test }) => {

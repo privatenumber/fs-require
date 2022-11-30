@@ -31,14 +31,14 @@
 		"#fs-require": {
 			"types": "./src/index.ts",
 			"development": "./src/index.ts",
-			"default": "./dist/index.mjs"
+			"default": "./dist/index.cjs"
 		}
 	},
 	"scripts": {
 		"prepare": "simple-git-hooks",
 		"lint": "eslint --cache .",
 		"type-check": "tsc --noEmit",
-		"build": "pkgroll --minify",
+		"build": "pkgroll --target=node12.22.12 --minify",
 		"test": "tsx tests",
 		"dev": "tsx watch --conditions=development tests",
 		"prepack": "pnpm build && clean-pkg-json"

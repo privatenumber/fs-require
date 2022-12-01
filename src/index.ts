@@ -11,7 +11,10 @@ import {
 import { isBareSpecifier, resolveBareSpecifier } from './utils/resolve-bare-specifier';
 import { resolveModule } from './utils/resolve-module';
 
-export type { FileSystemLike as FileSystem };
+export type {
+	FileSystemLike as FileSystem,
+	fsRequire,
+};
 
 const loaders: Loaders = { /*
 	loaderes are organized like this to keep them anonymous

@@ -21,11 +21,16 @@
 	],
 	"main": "./dist/index.cjs",
 	"module": "./dist/index.mjs",
-	"types": "./dist/index.d.ts",
+	"types": "./dist/index.d.cts",
 	"exports": {
-		"types": "./dist/index.d.ts",
-		"require": "./dist/index.cjs",
-		"import": "./dist/index.mjs"
+		"require": {
+			"types": "./dist/index.d.cts",
+			"default": "./dist/index.cjs"
+		},
+		"import": {
+			"types": "./dist/index.d.mts",
+			"default": "./dist/index.mjs"
+		}
 	},
 	"imports": {
 		"#fs-require": {
@@ -57,7 +62,7 @@
 		"lint-staged": "^13.0.4",
 		"manten": "^0.5.0",
 		"memfs": "^3.4.12",
-		"pkgroll": "^1.5.0",
+		"pkgroll": "^1.7.0",
 		"simple-git-hooks": "^2.8.1",
 		"tsx": "^3.12.1",
 		"typescript": "^4.9.3"

@@ -7,3 +7,4 @@ Project decisions for fs-require.
 - [bare-specifier-resolution.md](./bare-specifier-resolution.md): Where `require('package')` inside a virtual module resolves from, and why it uses the `createFsRequire()` caller.
 - [module-wrapper.md](./module-wrapper.md): What `__filename`, `__dirname`, and `module.filename` are inside a virtual module, and why they match Node.js.
 - [module-resolution.md](./module-resolution.md): How relative and absolute paths resolve to files and directories, compared with Node.js on real disk.
+- [module-lifecycle.md](./module-lifecycle.md): When a virtual module is cached, marked loaded, and removed after a failed load, matching Node.js's CommonJS loader.

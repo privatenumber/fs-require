@@ -30,6 +30,7 @@ const {
 	push: arrayPush,
 	splice: arraySplice,
 } = Array.prototype;
+const { isArray } = Array;
 
 const addChild = (parentModule: Module | undefined, child: Module) => {
 	const children = parentModule?.children;
@@ -40,7 +41,7 @@ const addChild = (parentModule: Module | undefined, child: Module) => {
 
 const removeChild = (parentModule: Module | undefined, child: Module) => {
 	const children = parentModule?.children;
-	if (Array.isArray(children)) {
+	if (isArray(children)) {
 		const index = arrayIndexOf.call(children, child);
 		if (index !== -1) {
 			arraySplice.call(children, index, 1);

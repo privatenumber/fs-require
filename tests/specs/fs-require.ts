@@ -318,8 +318,9 @@ describe('fs-require', () => {
 		expect(runs).toBe(1);
 	});
 
-	// Node.js captures array methods at startup, so a stubbed method doesn't break loading
-	test('Cached requires work while Array.prototype is stubbed', () => {
+	// Node.js captures array methods at startup, so stubbing one that fs-require
+	// uses for module.children doesn't break loading
+	test('Cached requires work while Array.prototype.includes is stubbed', () => {
 		const vol = Volume.fromJSON({
 			'/cached.js': 'module.exports = "cached";',
 			'/index.js': `
@@ -338,6 +339,30 @@ describe('fs-require', () => {
 		const fsRequire = createFsRequire(vol);
 
 		expect(fsRequire('/index')).toBe('cached');
+	});
+
+	test('A failed load keeps its error while Array.isArray is stubbed', () => {
+		const vol = Volume.fromJSON({
+			'/stub.js': 'Array.isArray = () => { throw new Error("stubbed"); }; throw new Error("original failure");',
+			'/index.js': `
+				const { isArray } = Array;
+				let error;
+				try {
+					require('./stub');
+				} catch (caught) {
+					error = caught.message;
+				} finally {
+					Array.isArray = isArray;
+				}
+				module.exports = { error, children: module.children.length };
+			`,
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire('/index')).toStrictEqual({
+			error: 'original failure',
+			children: 0,
+		});
 	});
 
 	// Matches Node.js: a module that fails to load is removed from the cache

@@ -5,6 +5,9 @@ import { createModuleNotFoundError } from './utils/module-not-found-error.ts';
 const isFilePathPattern = /^[./]/;
 export const isBareSpecifier = (modulePath: string) => !isFilePathPattern.test(modulePath);
 
+// fs, node:fs, and their subpaths, such as fs/promises
+const fsSpecifierPattern = /^(?:node:)?fs(\/.+)?$/;
+
 /**
  * Bare specifiers resolve from the createFsRequire() caller, like relative
  * paths. Without a caller file, they resolve from fs-require itself
@@ -20,24 +23,22 @@ export const resolveBareSpecifier = (
 	callerRequire: NodeJS.Require,
 	stackStartFunction: (...arguments_: never[]) => unknown,
 ) => {
-	const { fs } = options ?? {};
+	const fsSpecifier = modulePath.match(fsSpecifierPattern);
 
 	// `fs: true` loads the real fs module
-	if (fs !== true) {
-		const shimFs = fs || mfs;
-		const moduleName = modulePath.replace(/^node:/, '');
+	if (fsSpecifier && options?.fs !== true) {
+		const shimFs = options?.fs || mfs;
+		const subpath = fsSpecifier[1];
 
-		if (moduleName === 'fs') {
+		if (!subpath) {
 			return shimFs;
 		}
 
-		if (moduleName === 'fs/promises' && ('promises' in shimFs)) {
+		if (subpath === '/promises' && ('promises' in shimFs)) {
 			return shimFs.promises;
 		}
 
-		if (moduleName.startsWith('fs/')) {
-			throw createModuleNotFoundError(modulePath, stackStartFunction);
-		}
+		throw createModuleNotFoundError(modulePath, stackStartFunction);
 	}
 
 	return callerRequire(modulePath);

@@ -54,7 +54,7 @@ Observed `CallSite.getFileName()` values for the direct caller (Node.js v26.13.0
 | `vm` script, such as a virtual module | its `filename` option, such as `fs-require://1/x.js` | Not absolute, so no caller file |
 | `Error.stackTraceLimit = 0` set by the user | `[eval]` (frame still captured) | The temporary limit of `1` applies |
 
-Without a caller file, relative paths go to the file-system unchanged. Node.js `fs` and memfs then resolve them from `process.cwd()`.
+Without a caller file, relative paths stay relative: they are normalized, but not made absolute. Node.js `fs` and memfs then resolve them from `process.cwd()`. See [module-resolution.md](./module-resolution.md) for how they are normalized.
 
 ## Alternatives considered
 

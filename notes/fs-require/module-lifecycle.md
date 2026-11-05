@@ -8,7 +8,9 @@ fs-require caches, loads, and cleans up a virtual module in the same order as No
 4. Read and run the file, set `module.loaded = true`, and read `module.exports`.
 5. If any part of step 4 throws, delete the cache entry and remove the failed module from the parent's `children` (when `children` is still an array), then rethrow the original error.
 
-The `children` updates use `Array.isArray` and the `Array.prototype` methods `includes`, `indexOf`, `push`, and `splice`, captured when fs-require loads, like Node.js's primordials. They work when a module replaces `module.children` with another object or stubs one of those methods. Other built-ins, such as the array iterator, aren't captured.
+The `children` updates use `Array.isArray` and the `Array.prototype` methods `includes`, `indexOf`, `push`, and `splice`, captured when fs-require loads, like Node.js's primordials. They protect the cache-hit and cleanup paths when a module replaces `module.children` with another object or stubs one of those methods. Other built-ins, such as the array iterator, aren't captured. A new child is added by Node.js's own `Module` constructor, which on Node.js 12.22 calls `children.push()` directly ([`loader.js` L134-L145 at v12.22.12](https://github.com/nodejs/node/blob/v12.22.12/lib/internal/modules/cjs/loader.js#L134-L145)), so there a replaced or stubbed `children` can make loading a new child throw. This was traced in the source, not run on Node.js 12.
+
+Each `require()` resolves its request again before checking the cache (see [module-resolution.md](./module-resolution.md)). So if a module deletes its own file while it loads, a circular require back to it throws `MODULE_NOT_FOUND` instead of returning its partial exports.
 
 Cleanup can still fail when a module freezes what it modifies, as in Node.js. If a module freezes `module.parent.children` and then throws, removing it throws a `TypeError` that replaces the original error, and the module stays in `children`. If it freezes `fsRequire.cache`, its entry can't be deleted.
 

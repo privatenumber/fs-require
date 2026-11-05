@@ -253,6 +253,66 @@ describe('fs-require', () => {
 		expect(value2).not.toBe(value3);
 	});
 
+	// Matches Node.js: a module is cached before it runs
+	test('Circular requires get the partial exports', () => {
+		const vol = Volume.fromJSON({
+			'/a.js': 'exports.a = 1; require("./b"); exports.done = true;',
+			'/b.js': 'module.exports = { fromA: { ...require("./a") }, aLoaded: require.cache["/a.js"].loaded };',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire('/a')).toStrictEqual({
+			a: 1,
+			done: true,
+		});
+		expect(fsRequire('/b')).toStrictEqual({
+			fromA: { a: 1 },
+			aLoaded: false,
+		});
+		expect(fsRequire.cache['/a.js'].loaded).toBe(true);
+	});
+
+	// Matches Node.js: a module that fails to load is removed from the cache
+	// and from its parent's children, so requiring it again retries
+	test('Failed loads are not cached', () => {
+		let attempts = 0;
+		const vol = Volume.fromJSON({
+			'/throws.js': 'globalThis.fsRequireAttempt(); throw new Error("load failed");',
+			'/unreadable.js': '',
+			'/index.js': `
+				const tryRequire = (request) => {
+					try {
+						require(request);
+					} catch {}
+				};
+				tryRequire('./throws');
+				tryRequire('./unreadable');
+				module.exports = module.children.map(child => child.id);
+			`,
+		});
+		const readFileSync = vol.readFileSync.bind(vol);
+		const mfs = Object.assign(Object.create(vol), {
+			readFileSync: (filePath: string) => {
+				if (filePath === '/unreadable.js') {
+					throw Object.assign(new Error('EACCES'), { code: 'EACCES' });
+				}
+				return readFileSync(filePath);
+			},
+		});
+		Object.assign(globalThis, {
+			fsRequireAttempt: () => {
+				attempts += 1;
+			},
+		});
+		const fsRequire = createFsRequire(mfs);
+
+		expect(fsRequire('/index')).toStrictEqual([]);
+		expect(Object.keys(fsRequire.cache)).toStrictEqual(['/index.js']);
+
+		expect(() => fsRequire('/throws')).toThrow('load failed');
+		expect(attempts).toBe(2);
+	});
+
 	test('Error stack', () => {
 		const vol = Volume.fromJSON({
 			'/index.js': 'module.exports = new Error(\'some error\');',

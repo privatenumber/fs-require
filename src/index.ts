@@ -21,22 +21,29 @@ export type {
 	fsRequire,
 };
 
-// A module can replace or modify module.children, so these use the generic
-// Array.prototype methods instead of the value's own, like Node.js does
+// A module can replace or modify module.children, or Array.prototype itself,
+// so these use array methods captured at load time, like Node.js's primordials
 // Reference: https://github.com/nodejs/node/blob/v26.13.0/lib/internal/modules/cjs/loader.js#L324-L329
+const {
+	includes: arrayIncludes,
+	indexOf: arrayIndexOf,
+	push: arrayPush,
+	splice: arraySplice,
+} = Array.prototype;
+
 const addChild = (parentModule: Module | undefined, child: Module) => {
 	const children = parentModule?.children;
-	if (children && !Array.prototype.includes.call(children, child)) {
-		Array.prototype.push.call(children, child);
+	if (children && !arrayIncludes.call(children, child)) {
+		arrayPush.call(children, child);
 	}
 };
 
 const removeChild = (parentModule: Module | undefined, child: Module) => {
 	const children = parentModule?.children;
 	if (Array.isArray(children)) {
-		const index = Array.prototype.indexOf.call(children, child);
+		const index = arrayIndexOf.call(children, child);
 		if (index !== -1) {
-			Array.prototype.splice.call(children, index, 1);
+			arraySplice.call(children, index, 1);
 		}
 	}
 };

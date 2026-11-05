@@ -1,4 +1,5 @@
 import path from 'node:path';
+import vm from 'node:vm';
 import { describe, test, expect } from 'manten';
 import { createFixture } from 'fs-fixture';
 import { Volume } from 'memfs';
@@ -293,6 +294,50 @@ describe('fs-require', () => {
 			fromB: { a: 1 },
 		});
 		expect(runs).toBe(1);
+	});
+
+	test('Circular requires without a caller file run each module once', () => {
+		let runs = 0;
+		Object.assign(globalThis, {
+			fsRequireRelativeRun: () => {
+				runs += 1;
+			},
+		});
+		const vol = Volume.fromJSON({
+			'./a.js': 'globalThis.fsRequireRelativeRun(); exports.a = 1; exports.fromB = require("./b"); exports.done = true;',
+			'./b.js': 'module.exports = { ...require("./a") };',
+		});
+		const createWithoutCaller = vm.runInThisContext('(create, fs) => create(fs)');
+		const fsRequire = createWithoutCaller(createFsRequire, vol);
+
+		expect(fsRequire('./a')).toStrictEqual({
+			a: 1,
+			fromB: { a: 1 },
+			done: true,
+		});
+		expect(runs).toBe(1);
+	});
+
+	// Node.js captures array methods at startup, so a stubbed method doesn't break loading
+	test('Cached requires work while Array.prototype is stubbed', () => {
+		const vol = Volume.fromJSON({
+			'/cached.js': 'module.exports = "cached";',
+			'/index.js': `
+				require('./cached');
+				const { includes } = Array.prototype;
+				Array.prototype.includes = () => {
+					throw new Error('stubbed');
+				};
+				try {
+					module.exports = require('./cached');
+				} finally {
+					Array.prototype.includes = includes;
+				}
+			`,
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire('/index')).toBe('cached');
 	});
 
 	// Matches Node.js: a module that fails to load is removed from the cache

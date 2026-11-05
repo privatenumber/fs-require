@@ -8,8 +8,12 @@ fs-require caches, loads, and cleans up a virtual module in the same order as No
 4. Read and run the file, set `module.loaded = true`, and read `module.exports`.
 5. If any part of step 4 throws, delete the cache entry and remove the failed module from the parent's `children` (when `children` is still an array), then rethrow the original error.
 
+The `children` updates use `Array.prototype` methods captured when fs-require loads, like Node.js's primordials, so they work when a module replaces `module.children` with another object or stubs `Array.prototype` methods.
+
+Cleanup can still fail when a module freezes what it modifies, as in Node.js. If a module freezes `module.parent.children` and then throws, removing it throws a `TypeError` that replaces the original error, and the module stays in `children`. If it freezes `fsRequire.cache`, its entry can't be deleted.
+
 - Implementation: the `require` closure in [`src/index.ts`](../../src/index.ts).
-- Contract: the "Circular requires get the partial exports", "Failed loads are not cached", "A module that cannot be marked loaded is not cached", and "A failed load keeps its error after replacing module.parent.children", "A module whose exports getter throws is not cached", and "Replaced or modified module.children still records children" tests in [`tests/specs/fs-require.ts`](../../tests/specs/fs-require.ts).
+- Contract: the "Circular requires get the partial exports", "Failed loads are not cached", "A module that cannot be marked loaded is not cached", and "A failed load keeps its error after replacing module.parent.children", "A module whose exports getter throws is not cached", and "Replaced or modified module.children still records children", "Circular requires without a caller file run each module once", and "Cached requires work while Array.prototype is stubbed" tests in [`tests/specs/fs-require.ts`](../../tests/specs/fs-require.ts).
 
 Last verified 2026-11-06 on Node.js v26.13.0.
 

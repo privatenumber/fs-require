@@ -153,6 +153,55 @@ describe('fs-require', () => {
 		});
 	});
 
+	// Code that requires optional modules checks this code, like Node.js require()
+	test('Missing modules throw MODULE_NOT_FOUND', () => {
+		const vol = Volume.fromJSON({
+			'/index.js': `
+				const getCode = (request) => {
+					try {
+						require(request);
+					} catch (error) {
+						return error.code;
+					}
+				};
+				module.exports = [getCode('./missing'), getCode('fs/missing')];
+			`,
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire('/index')).toStrictEqual(['MODULE_NOT_FOUND', 'MODULE_NOT_FOUND']);
+	});
+
+	test('Missing module stack starts at the require() call', () => {
+		const vol = Volume.fromJSON({
+			'/index.js': `
+				const getStack = (request) => {
+					try {
+						require(request);
+					} catch (error) {
+						return error.stack;
+					}
+				};
+				module.exports = [getStack('./missing'), getStack('fs/missing')];
+			`,
+		});
+		const fsRequire = createFsRequire(vol);
+
+		for (const stack of fsRequire('/index')) {
+			expect(stack.split('\n', 2)[1]).toMatch(`fs-require://${fsRequire.id}/index.js:`);
+		}
+
+		const getTopLevelStack = (request: () => unknown) => {
+			try {
+				request();
+			} catch (error) {
+				return (error as Error).stack!.split('\n', 2)[1];
+			}
+		};
+		expect(getTopLevelStack(() => fsRequire('./missing'))).toMatch(import.meta.filename);
+		expect(getTopLevelStack(() => fsRequire.resolve('./missing'))).toMatch(import.meta.filename);
+	});
+
 	test('Modules are cached', () => {
 		const vol = Volume.fromJSON({
 			'/test-module.js': 'module.exports = Math.random();',

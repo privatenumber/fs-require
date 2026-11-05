@@ -18,7 +18,7 @@ const implicitExtensionPattern = new RegExp(
 	})$`,
 );
 
-const resolveModuleSafe = (
+export const resolveModule = (
 	mfs: FileSystemLike,
 	modulePath: string,
 	parentFilename?: string,
@@ -31,8 +31,8 @@ const resolveModuleSafe = (
 	if (mfs.existsSync(modulePath)) {
 		if (mfs.lstatSync(modulePath).isDirectory()) {
 			return (
-				resolveModuleSafe(mfs, path.join(modulePath, 'index.js'))
-				|| resolveModuleSafe(mfs, path.join(modulePath, 'index.json'))
+				resolveModule(mfs, path.join(modulePath, 'index.js'))
+				|| resolveModule(mfs, path.join(modulePath, 'index.json'))
 			);
 		}
 
@@ -55,18 +55,4 @@ const resolveModuleSafe = (
 	}
 
 	return null;
-};
-
-export const resolveModule = (
-	mfs: FileSystemLike,
-	modulePath: string,
-	parentFilename?: string,
-) => {
-	const resolved = resolveModuleSafe(mfs, modulePath, parentFilename);
-
-	if (!resolved) {
-		throw new Error(`Cannot find module '${modulePath}'`);
-	}
-
-	return resolved;
 };

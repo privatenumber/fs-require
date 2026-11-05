@@ -47,6 +47,19 @@ describe('fs-require', () => {
 		]);
 	});
 
+	test('Only .json files load as JSON', () => {
+		const vol = Volume.fromJSON({
+			'/data.json': '{"value":1}',
+			'/extensionless': 'module.exports = "extensionless";',
+			'/file.unknown': 'module.exports = "unknown";',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire('/data.json')).toStrictEqual({ value: 1 });
+		expect(fsRequire('/extensionless')).toBe('extensionless');
+		expect(fsRequire('/file.unknown')).toBe('unknown');
+	});
+
 	test('native module', () => {
 		const vol = Volume.fromJSON({
 			'/index.js': 'module.exports = require(\'path\');',
@@ -135,6 +148,16 @@ describe('fs-require', () => {
 			});
 
 			expect(fsRequire('/index')).toBe(randomNumber);
+		});
+
+		// Only fs and fs/<subpath> are shimmed, so Node.js rejects node:fs/ itself
+		test('fs with an empty subpath is not shimmed', () => {
+			const vol = Volume.fromJSON({});
+			const fsRequire = createFsRequire(vol);
+
+			expect(() => fsRequire('node:fs/')).toThrow(expect.objectContaining({
+				code: 'ERR_UNKNOWN_BUILTIN_MODULE',
+			}));
 		});
 
 		// https://nodejs.org/api/esm.html#node-imports

@@ -21,22 +21,22 @@ export type {
 	fsRequire,
 };
 
+// A module can replace or modify module.children, so these use the generic
+// Array.prototype methods instead of the value's own, like Node.js does
 // Reference: https://github.com/nodejs/node/blob/v26.13.0/lib/internal/modules/cjs/loader.js#L324-L329
 const addChild = (parentModule: Module | undefined, child: Module) => {
 	const children = parentModule?.children;
-	if (children && !children.includes(child)) {
-		children.push(child);
+	if (children && !Array.prototype.includes.call(children, child)) {
+		Array.prototype.push.call(children, child);
 	}
 };
 
-// The module may have replaced module.parent.children while it ran,
-// so this checks that children is still an array, like Node.js does
 const removeChild = (parentModule: Module | undefined, child: Module) => {
 	const children = parentModule?.children;
 	if (Array.isArray(children)) {
-		const index = children.indexOf(child);
+		const index = Array.prototype.indexOf.call(children, child);
 		if (index !== -1) {
-			children.splice(index, 1);
+			Array.prototype.splice.call(children, index, 1);
 		}
 	}
 };
@@ -96,17 +96,21 @@ export const createFsRequire = (
 			newModule.filename = filePath;
 			moduleCache[filePath] = newModule;
 
+			let moduleExports: unknown;
 			try {
 				// Read here, not in runModule(), to keep file-system errors one frame from the caller
 				runModule(newModule, mfs.readFileSync(filePath).toString());
 				newModule.loaded = true;
+
+				// Read inside the guard, because module.exports can be a throwing getter
+				moduleExports = newModule.exports;
 			} catch (error) {
 				delete moduleCache[filePath];
 				removeChild(parentModule, newModule);
 				throw error;
 			}
 
-			return newModule.exports;
+			return moduleExports;
 		};
 
 		require.id = fsRequireId;

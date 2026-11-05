@@ -5,11 +5,11 @@ fs-require caches, loads, and cleans up a virtual module in the same order as No
 1. On a cache hit, add the cached module to the requiring parent's `module.children` if it isn't there yet, and return its exports. This records the edge of a circular require.
 2. Otherwise, create the `Module` with its parent, which adds it to the parent's `children`.
 3. Store it in `fsRequire.cache` before running it.
-4. Read and run the file, then set `module.loaded = true`.
+4. Read and run the file, set `module.loaded = true`, and read `module.exports`.
 5. If any part of step 4 throws, delete the cache entry and remove the failed module from the parent's `children` (when `children` is still an array), then rethrow the original error.
 
 - Implementation: the `require` closure in [`src/index.ts`](../../src/index.ts).
-- Contract: the "Circular requires get the partial exports", "Failed loads are not cached", "A module that cannot be marked loaded is not cached", and "A failed load keeps its error after replacing module.parent.children" tests in [`tests/specs/fs-require.ts`](../../tests/specs/fs-require.ts).
+- Contract: the "Circular requires get the partial exports", "Failed loads are not cached", "A module that cannot be marked loaded is not cached", and "A failed load keeps its error after replacing module.parent.children", "A module whose exports getter throws is not cached", and "Replaced or modified module.children still records children" tests in [`tests/specs/fs-require.ts`](../../tests/specs/fs-require.ts).
 
 Last verified 2026-11-06 on Node.js v26.13.0.
 
@@ -33,6 +33,8 @@ Also observed:
 - When `b.js` requires the still-loading `a.js`, `b`'s `module.children` contains `a.js`.
 - A module that runs `Object.freeze(module)` throws a `TypeError` on every `require()`, and isn't left in `require.cache`.
 - A module that sets `module.parent.children = {}` and then throws surfaces its own error.
+- A module whose `module.exports` is a getter that throws runs again on the next `require()`, and isn't left in `require.cache`.
+- After `module.children = {}`, requiring a cached module still records it: `children.length` becomes `1`. Node.js uses the generic `Array.prototype` methods, so this works on an object, and on an array whose prototype was removed. fs-require uses the same methods.
 
 ## Behavior before v2
 

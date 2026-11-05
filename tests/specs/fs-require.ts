@@ -326,6 +326,53 @@ describe('fs-require', () => {
 		expect(Object.keys(fsRequire.cache)).toStrictEqual([]);
 	});
 
+	test('A module whose exports getter throws is not cached', () => {
+		let runs = 0;
+		Object.assign(globalThis, {
+			fsRequireRun: () => {
+				runs += 1;
+			},
+		});
+		const vol = Volume.fromJSON({
+			'/getter.js': 'globalThis.fsRequireRun(); Object.defineProperty(module, "exports", { get() { throw new Error("getter"); } });',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(() => fsRequire('/getter')).toThrow('getter');
+		expect(() => fsRequire('/getter')).toThrow('getter');
+		expect(runs).toBe(2);
+		expect(Object.keys(fsRequire.cache)).toStrictEqual([]);
+	});
+
+	test('Replaced or modified module.children still records children', () => {
+		const vol = Volume.fromJSON({
+			'/cached.js': '',
+			'/fails.js': 'Object.setPrototypeOf(module.parent.children, null); throw new Error("original failure");',
+			'/index.js': `
+				require('./cached');
+				module.children = {};
+				require('./cached');
+				const replaced = module.children.length;
+
+				module.children = [];
+				let error;
+				try {
+					require('./fails');
+				} catch (caught) {
+					error = caught.message;
+				}
+				module.exports = { replaced, error, children: module.children.length };
+			`,
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire('/index')).toStrictEqual({
+			replaced: 1,
+			error: 'original failure',
+			children: 0,
+		});
+	});
+
 	test('A failed load keeps its error after replacing module.parent.children', () => {
 		const vol = Volume.fromJSON({
 			'/replace.js': 'module.parent.children = {}; throw new Error("original failure");',

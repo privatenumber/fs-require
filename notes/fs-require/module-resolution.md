@@ -1,6 +1,6 @@
 # File and directory resolution
 
-For a relative or absolute file request, fs-require tries a file before a directory. It resolves relative requests from the parent file's directory when a parent is available. Absolute requests are normalized with `path.resolve()`, as Node.js does, so an alias such as `/sub/../a` resolves to `/a.js` and shares its cache entry. Before this, `require('/sub/../a.js')` and `require('/a.js')` created two instances of the same file. The implementation is in [`src/resolve-module.ts`](../../src/resolve-module.ts); the observable cases are in [`tests/specs/resolve.ts`](../../tests/specs/resolve.ts).
+For a relative or absolute file request, fs-require tries a file before a directory. It resolves relative requests from the parent file's directory when a parent is available. Absolute requests are normalized with `path.resolve()`, as Node.js does, so an alias such as `/sub/../a` resolves to `/a.js` and shares its cache entry. On Windows, this also unifies `/` and `\\` separators. A request ending in `/`, `/.`, or `/..` names a directory and skips the file step, matching Node.js's check before normalization ([`loader.js` L799-L810](https://github.com/nodejs/node/blob/v26.13.0/lib/internal/modules/cjs/loader.js#L799-L810)). A `package.json` may start with a UTF-8 byte order mark, and one that isn't a JSON object throws `ERR_INVALID_PACKAGE_CONFIG` ([`node_modules.cc` L128-L130](https://github.com/nodejs/node/blob/v26.13.0/src/node_modules.cc#L128-L130)). Before this, `require('/sub/../a.js')` and `require('/a.js')` created two instances of the same file. The implementation is in [`src/resolve-module.ts`](../../src/resolve-module.ts); the observable cases are in [`tests/specs/resolve.ts`](../../tests/specs/resolve.ts).
 
 The resolver follows the file and directory parts of the [Node.js v26.13.0 CommonJS algorithm](https://github.com/nodejs/node/blob/v26.13.0/doc/api/modules.md#L368-L400), with the limitations below:
 
@@ -15,11 +15,11 @@ Index names are exact: `index.js.json` is not an index. Bare requests continue t
 - The resolver does not try native `.node` addons or detect ESM. fs-require runs non-JSON files as CommonJS.
 - It does not apply `package.json` `exports` to relative paths.
 - File checks use `lstatSync`, not `statSync`; symlinks are not followed for file classification. Full Node.js symlink resolution is not supported.
-- A `package.json` containing JSON `null` throws a `TypeError`, while Node.js throws `ERR_INVALID_PACKAGE_CONFIG` for the same input.
+- A non-string `main`, such as `5`, is ignored, as in Node.js v26. Node.js 12.22 throws for it instead. fs-require keeps the v26 behavior on every supported runtime.
 
 ## Real-disk comparison
 
-On Node.js v26.13.0, macOS arm64, each scenario below was created in a separate real directory. Both Node.js `require.resolve(absolutePath)` and `createFsRequire(require('fs')).resolve(absolutePath)` resolved each request. Successful results were normalized with `fs.realpathSync` and shown relative to the scenario directory. Both implementations produced the same result except for the `null` package configuration error.
+On Node.js v26.13.0, macOS arm64, each scenario below was created in a separate real directory. Both Node.js `require.resolve(absolutePath)` and `createFsRequire(require('fs')).resolve(absolutePath)` resolved each request. Successful results were normalized with `fs.realpathSync` and shown relative to the scenario directory. Both implementations produced the same result in every scenario.
 
 | Files and request | Node.js | fs-require |
 | --- | --- | --- |
@@ -34,7 +34,10 @@ On Node.js v26.13.0, macOS arm64, each scenario below was created in a separate 
 | `pkg/package.json` with `{"main":"missing.js"}`; resolve `pkg` | `MODULE_NOT_FOUND` | `MODULE_NOT_FOUND` |
 | `dir/index.js.json`; resolve `dir` | `MODULE_NOT_FOUND` | `MODULE_NOT_FOUND` |
 | `pkg/package.json` with `{"main":5}`, `pkg/index.js`; resolve `pkg` | `pkg/index.js` | `pkg/index.js` |
-| `pkg/package.json` with `null`, `pkg/index.js`; resolve `pkg` | `ERR_INVALID_PACKAGE_CONFIG` | `TypeError` |
+| `pkg/package.json` with `null`, `pkg/index.js`; resolve `pkg` | `ERR_INVALID_PACKAGE_CONFIG` | `ERR_INVALID_PACKAGE_CONFIG` |
+| `pkg/package.json` with `[]` or `5`, `pkg/index.js`; resolve `pkg` | `ERR_INVALID_PACKAGE_CONFIG` | `ERR_INVALID_PACKAGE_CONFIG` |
+| `pkg/package.json` with a UTF-8 byte order mark before `{"main":"entry.js"}`, `pkg/entry.js`; resolve `pkg` | `pkg/entry.js` | `pkg/entry.js` |
+| `a.js` and `a/index.js`; resolve `a/` and `a/.` | `a/index.js` | `a/index.js` |
 | `pkg/package.json` with `{"main":null}`, `pkg/index.js`; resolve `pkg` | `pkg/index.js` | `pkg/index.js` |
 
 ## Observed behavior before and after the fix

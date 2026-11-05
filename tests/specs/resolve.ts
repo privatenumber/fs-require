@@ -230,6 +230,44 @@ describe('resolve', () => {
 		});
 	});
 
+	// Like Node.js, a request ending in /, /., or /.. names a directory
+	test('directory requests skip files', () => {
+		const vol = Volume.fromJSON({
+			'/a.js': '',
+			'/a/index.js': '',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire.resolve('/a')).toBe('/a.js');
+		expect(fsRequire.resolve('/a/')).toBe('/a/index.js');
+		expect(fsRequire.resolve('/a/.')).toBe('/a/index.js');
+		expect(fsRequire.resolve('/a/index.js/..')).toBe('/a/index.js');
+	});
+
+	test('package.json with a byte order mark', () => {
+		const vol = Volume.fromJSON({
+			'/pkg/package.json': '\uFEFF{"main":"entry.js"}',
+			'/pkg/entry.js': '',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire.resolve('/pkg')).toBe('/pkg/entry.js');
+	});
+
+	test('package.json that is not an object', () => {
+		for (const config of ['null', '5', 'false', '"main"', '[]']) {
+			const vol = Volume.fromJSON({
+				'/pkg/package.json': config,
+				'/pkg/index.js': '',
+			});
+			const fsRequire = createFsRequire(vol);
+
+			expect(() => fsRequire.resolve('/pkg')).toThrow(expect.objectContaining({
+				code: 'ERR_INVALID_PACKAGE_CONFIG',
+			}));
+		}
+	});
+
 	// The resolved path is the cache key, so aliases of one file must match
 	test('absolute paths are normalized', () => {
 		const vol = Volume.fromJSON({

@@ -30,14 +30,16 @@ export type fsRequire = {
 };
 
 export const implicitExtensions = ['.js', '.json'] as const;
-export const loaderTypes = ['', ...implicitExtensions] as const;
 
-export type Loaders = {
-	[key in typeof loaderTypes[number]]: undefined | ((
-		newModule: Module,
-		sourceCode: string,
-		makeRequire?: (parentModule: Module) => fsRequire,
-		filename?: string,
-		id?: number,
-	) => void);
-};
+// An empty string is an extensionless file, which loads as JavaScript
+export type LoaderExtension = '' | typeof implicitExtensions[number];
+
+type Loader = (
+	newModule: Module,
+	sourceCode: string,
+	makeRequire: (parentModule: Module) => fsRequire,
+	filename: string,
+	id: number,
+) => void;
+
+export type Loaders = Record<LoaderExtension, Loader | undefined>;

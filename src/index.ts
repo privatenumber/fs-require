@@ -8,8 +8,8 @@ import type {
 	Loaders,
 	ModuleCache,
 } from './types.ts';
-import { isBareSpecifier, resolveBareSpecifier } from './utils/resolve-bare-specifier.ts';
-import { resolveModule } from './utils/resolve-module.ts';
+import { isBareSpecifier, resolveBareSpecifier } from './resolve-bare-specifier.ts';
+import { resolveModule } from './resolve-module.ts';
 import { getCallerFilename } from './utils/get-caller-filename.ts';
 
 export type {
@@ -17,10 +17,8 @@ export type {
 	fsRequire,
 };
 
-const loaders: Loaders = { /*
-	loaderes are organized like this to keep them anonymous
-	in the call stack, like how the native loders behave.
-*/
+// Loaders are assigned after creation to keep them anonymous in stack traces
+const loaders: Loaders = {
 	'': undefined,
 	'.js': undefined,
 	'.json': undefined,
@@ -33,17 +31,17 @@ const loaders: Loaders = { /*
 loaders[''] = (newModule, sourceCode, makeRequire, filename, id) => {
 	const moduleWrappedSourceCode = Module.wrap(sourceCode);
 
-	// Reference: https://github.com/nodejs/node/blob/master/lib/internal/modules/cjs/loader.js#L1028
+	// Reference: https://github.com/nodejs/node/blob/v26.13.0/lib/internal/modules/cjs/loader.js#L1954-L1968
 	vm.runInThisContext(moduleWrappedSourceCode, {
 		filename: `fs-require://${id}${filename}`,
 		lineOffset: 0,
 		displayErrors: true,
 	})(
 		newModule.exports,
-		makeRequire!(newModule),
+		makeRequire(newModule),
 		newModule,
-		path.basename(filename!),
-		path.dirname(filename!),
+		path.basename(filename),
+		path.dirname(filename),
 	);
 };
 

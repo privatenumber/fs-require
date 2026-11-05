@@ -1,18 +1,22 @@
 import path from 'path';
 import {
 	type FileSystemLike,
+	type LoaderExtension,
 	implicitExtensions,
-	type loaderTypes,
-} from '../types.ts';
-import {
-	hasValidExtensionPattern,
-	isDirectory,
-} from './index.ts';
+} from './types.ts';
 
 type Resolved = {
-	extension: (typeof loaderTypes)[number];
+	extension: LoaderExtension;
 	filePath: string;
 };
+
+const implicitExtensionPattern = new RegExp(
+	`(${
+		implicitExtensions
+			.map(extension => extension.replace(/\./g, String.raw`\$&`))
+			.join('|')
+	})$`,
+);
 
 const resolveModuleSafe = (
 	mfs: FileSystemLike,
@@ -25,14 +29,14 @@ const resolveModuleSafe = (
 
 	// Exact match
 	if (mfs.existsSync(modulePath)) {
-		if (isDirectory(mfs, modulePath)) {
+		if (mfs.lstatSync(modulePath).isDirectory()) {
 			return (
-				resolveModuleSafe(mfs, path.join(modulePath, 'index.js'), parentFilename)
-				|| resolveModuleSafe(mfs, path.join(modulePath, 'index.json'), parentFilename)
+				resolveModuleSafe(mfs, path.join(modulePath, 'index.js'))
+				|| resolveModuleSafe(mfs, path.join(modulePath, 'index.json'))
 			);
 		}
 
-		const extension = (modulePath.match(hasValidExtensionPattern)?.[0] ?? '') as Resolved['extension'];
+		const extension = (modulePath.match(implicitExtensionPattern)?.[0] ?? '') as LoaderExtension;
 		return {
 			extension,
 			filePath: modulePath,

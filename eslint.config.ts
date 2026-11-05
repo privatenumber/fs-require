@@ -14,6 +14,15 @@ export default defineConfig([
 
 			// String#replaceAll() was added in Node.js v15.0.0
 			'unicorn/prefer-string-replace-all': 'off',
+
+			'import-x/no-restricted-paths': ['error', {
+				zones: [{
+					target: './src/utils',
+					from: './src',
+					except: ['./utils'],
+					message: 'utils/ modules are generic primitives: import only built-ins, packages, and other utils/ modules.',
+				}],
+			}],
 		},
 	},
 ]);

@@ -8,7 +8,7 @@ fs-require runs a virtual module the same way Node.js runs a CommonJS module: it
 | `__dirname` | `path.dirname()` of that path |
 | `module.filename` | The same full path as `__filename` |
 
-- Implementation: the `''` loader in [`src/index.ts`](../../src/index.ts).
+- Implementation: `loadModule()` in [`src/index.ts`](../../src/index.ts).
 - Contract: the "__dirname, __filename" test in [`tests/specs/fs-require.ts`](../../tests/specs/fs-require.ts), and the "require() entry point" test in [`tests/specs/package.ts`](../../tests/specs/package.ts) for a real file-system.
 
 Last verified 2026-11-05 against Node.js v26.13.0.

@@ -8,7 +8,11 @@ import type {
 	Loaders,
 	ModuleCache,
 } from './types.ts';
-import { isBareSpecifier, resolveBareSpecifier } from './resolve-bare-specifier.ts';
+import {
+	isBareSpecifier,
+	createCallerRequire,
+	resolveBareSpecifier,
+} from './resolve-bare-specifier.ts';
 import { resolveModule } from './resolve-module.ts';
 import { getCallerFilename } from './utils/get-caller-filename.ts';
 import { createModuleNotFoundError } from './utils/module-not-found-error.ts';
@@ -61,6 +65,8 @@ export const createFsRequire = (
 	idCounter += 1;
 	const fsRequireId = idCounter;
 	const moduleCache: ModuleCache = Object.create(null);
+	const callerFilename = getCallerFilename(createFsRequire);
+	const callerRequire = createCallerRequire(callerFilename);
 
 	const makeRequireFunction = (
 		parentModule?: Module,
@@ -79,7 +85,7 @@ export const createFsRequire = (
 
 		const require: fsRequire = (modulePath: string) => {
 			if (isBareSpecifier(modulePath)) {
-				return resolveBareSpecifier(mfs, modulePath, options, require);
+				return resolveBareSpecifier(mfs, modulePath, options, callerRequire, require);
 			}
 
 			const resolvedPath = resolveModule(mfs, modulePath, parentFilename);
@@ -117,5 +123,5 @@ export const createFsRequire = (
 	};
 
 	// Relative paths passed to the returned function resolve from the caller's file
-	return makeRequireFunction(undefined, getCallerFilename(createFsRequire));
+	return makeRequireFunction(undefined, callerFilename);
 };

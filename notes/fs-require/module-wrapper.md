@@ -18,7 +18,7 @@ Last verified 2026-11-05 against Node.js v26.13.0.
 - Node.js documents `__filename` as "the current module file's absolute path with symlinks resolved" ([`modules.md` L808-L822 at v26.13.0](https://github.com/nodejs/node/blob/v26.13.0/doc/api/modules.md#L808-L822)).
 - `Module.prototype._compile` passes the full `filename` and `path.dirname(filename)` to the wrapper ([`loader.js` L1954-L1968 at v26.13.0](https://github.com/nodejs/node/blob/v26.13.0/lib/internal/modules/cjs/loader.js#L1954-L1968)):
 
-  ```js
+  ```text
   result = FunctionPrototypeCall(compiledWrapper, thisValue, exports, require, module, filename, dirname);
   ```
 

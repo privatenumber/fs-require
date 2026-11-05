@@ -42,7 +42,7 @@
 	"packageManager": "pnpm@12.16.1",
 	"scripts": {
 		"lint": "eslint --cache .",
-		"type-check": "tsc --noEmit",
+		"type-check": "tsc",
 		"build": "pkgroll --target=node12.22.12 --minify",
 		"test": "tsx tests",
 		"dev": "tsx watch --conditions=development tests",
@@ -50,14 +50,14 @@
 	},
 	"devDependencies": {
 		"@pvtnbr/eslint-config": "^0.33.0",
-		"@types/node": "^18.11.9",
-		"clean-pkg-json": "^1.2.0",
+		"@types/node": "^26.6.6",
+		"clean-pkg-json": "^2.1.0",
 		"eslint": "^8.28.0",
 		"manten": "^0.6.1",
-		"memfs": "^3.4.12",
+		"memfs": "^4.80.0",
 		"pkgroll": "^1.7.0",
 		"tsx": "^3.12.1",
-		"typescript": "^4.9.3"
+		"typescript": "^6.0.3"
 	},
 	"eslintConfig": {
 		"extends": "@pvtnbr/eslint-config"

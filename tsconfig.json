@@ -1,8 +1,18 @@
 {
 	"compilerOptions": {
-		"module": "Node16",
+		"target": "esnext",
+		"module": "nodenext",
+		"types": [
+			"node",
+		],
 		"isolatedModules": true,
-		"esModuleInterop": true,
+		"erasableSyntaxOnly": true,
 		"strict": true,
-	}
+		"noEmit": true,
+		"skipLibCheck": true,
+	},
+	"include": [
+		"src",
+		"tests",
+	],
 }

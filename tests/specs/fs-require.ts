@@ -273,6 +273,28 @@ describe('fs-require', () => {
 		expect(fsRequire.cache['/a.js'].loaded).toBe(true);
 	});
 
+	// The entry path is normalized, so the cycle finds the module it started from
+	test('Circular requires through a path alias run each module once', () => {
+		let runs = 0;
+		Object.assign(globalThis, {
+			fsRequireAliasRun: () => {
+				runs += 1;
+			},
+		});
+		const vol = Volume.fromJSON({
+			'/a.js': 'globalThis.fsRequireAliasRun(); exports.a = 1; exports.fromB = require("./b");',
+			'/b.js': 'module.exports = { ...require("./a") };',
+			'/sub/index.js': '',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire('/sub/../a')).toStrictEqual({
+			a: 1,
+			fromB: { a: 1 },
+		});
+		expect(runs).toBe(1);
+	});
+
 	// Matches Node.js: a module that fails to load is removed from the cache
 	// and from its parent's children, so requiring it again retries
 	test('Failed loads are not cached', () => {

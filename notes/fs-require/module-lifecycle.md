@@ -2,31 +2,37 @@
 
 fs-require caches, loads, and cleans up a virtual module in the same order as Node.js's CommonJS loader:
 
-1. Create the `Module` with its parent, which adds it to the parent's `module.children`.
-2. Store it in `fsRequire.cache` before running it.
-3. Read and run the file. On success, set `module.loaded = true`.
-4. If reading or running throws, delete the cache entry and remove the module from the parent's `children`, then rethrow.
+1. On a cache hit, add the cached module to the requiring parent's `module.children` if it isn't there yet, and return its exports. This records the edge of a circular require.
+2. Otherwise, create the `Module` with its parent, which adds it to the parent's `children`.
+3. Store it in `fsRequire.cache` before running it.
+4. Read and run the file, then set `module.loaded = true`.
+5. If any part of step 4 throws, delete the cache entry and remove the failed module from the parent's `children` (when `children` is still an array), then rethrow the original error.
 
 - Implementation: the `require` closure in [`src/index.ts`](../../src/index.ts).
-- Contract: the "Circular requires get the partial exports" and "Failed loads are not cached" tests in [`tests/specs/fs-require.ts`](../../tests/specs/fs-require.ts).
+- Contract: the "Circular requires get the partial exports", "Failed loads are not cached", "A module that cannot be marked loaded is not cached", and "A failed load keeps its error after replacing module.parent.children" tests in [`tests/specs/fs-require.ts`](../../tests/specs/fs-require.ts).
 
 Last verified 2026-11-06 on Node.js v26.13.0.
 
 ## Node.js behavior
 
-`Module._load` creates the module, caches it, loads it, and on failure deletes the cache entry and splices the module out of `parent.children` ([`loader.js` L1431-L1497 at v26.13.0](https://github.com/nodejs/node/blob/v26.13.0/lib/internal/modules/cjs/loader.js#L1431-L1497)).
+`Module._load` creates the module, caches it, loads it, and on failure deletes the cache entry and splices the module out of `parent.children` after checking that it is an array ([`loader.js` L1431-L1497 at v26.13.0](https://github.com/nodejs/node/blob/v26.13.0/lib/internal/modules/cjs/loader.js#L1431-L1497)). `Module.prototype.load` sets `loaded` inside that guarded call. On a cache hit, `updateChildren()` adds the module to the parent's `children` unless it is already there ([L324-L329](https://github.com/nodejs/node/blob/v26.13.0/lib/internal/modules/cjs/loader.js#L324-L329)).
 
-Observed with plain Node.js v26.13.0 and two files on disk:
+Observed with plain Node.js v26.13.0 and files on disk, loading `a.js` first:
 
 ```text
 a.js  exports.a = 1; require("./b"); exports.done = true;
 b.js  module.exports = { fromA: { ...require("./a") }, aLoaded: require.cache[require.resolve("./a")].loaded };
 
-require('./b.js')  -> {"fromA":{"a":1},"aLoaded":false}
+require('./a.js'), then reading b's exports -> {"fromA":{"a":1},"aLoaded":false}
 a's module.loaded after loading -> true
 ```
 
-A parent that catches a failed `require('./bad')` has `module.children` equal to `[]` afterwards.
+Also observed:
+
+- A parent with no other children that catches a failed `require('./bad')` has `module.children` equal to `[]` afterwards. Only the failed module is removed.
+- When `b.js` requires the still-loading `a.js`, `b`'s `module.children` contains `a.js`.
+- A module that runs `Object.freeze(module)` throws a `TypeError` on every `require()`, and isn't left in `require.cache`.
+- A module that sets `module.parent.children = {}` and then throws surfaces its own error.
 
 ## Behavior before v2
 

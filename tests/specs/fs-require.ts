@@ -257,7 +257,7 @@ describe('fs-require', () => {
 	test('Circular requires get the partial exports', () => {
 		const vol = Volume.fromJSON({
 			'/a.js': 'exports.a = 1; require("./b"); exports.done = true;',
-			'/b.js': 'module.exports = { fromA: { ...require("./a") }, aLoaded: require.cache["/a.js"].loaded };',
+			'/b.js': 'module.exports = { fromA: { ...require("./a") }, aLoaded: require.cache["/a.js"].loaded, children: module.children.map(child => child.id) };',
 		});
 		const fsRequire = createFsRequire(vol);
 
@@ -268,6 +268,7 @@ describe('fs-require', () => {
 		expect(fsRequire('/b')).toStrictEqual({
 			fromA: { a: 1 },
 			aLoaded: false,
+			children: ['/a.js'],
 		});
 		expect(fsRequire.cache['/a.js'].loaded).toBe(true);
 	});
@@ -311,6 +312,28 @@ describe('fs-require', () => {
 
 		expect(() => fsRequire('/throws')).toThrow('load failed');
 		expect(attempts).toBe(2);
+	});
+
+	// Matches Node.js, where marking the module loaded is part of loading it
+	test('A module that cannot be marked loaded is not cached', () => {
+		const vol = Volume.fromJSON({
+			'/frozen.js': 'Object.freeze(module);',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(() => fsRequire('/frozen')).toThrow(TypeError);
+		expect(() => fsRequire('/frozen')).toThrow(TypeError);
+		expect(Object.keys(fsRequire.cache)).toStrictEqual([]);
+	});
+
+	test('A failed load keeps its error after replacing module.parent.children', () => {
+		const vol = Volume.fromJSON({
+			'/replace.js': 'module.parent.children = {}; throw new Error("original failure");',
+			'/index.js': 'require("./replace");',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(() => fsRequire('/index')).toThrow('original failure');
 	});
 
 	test('Error stack', () => {

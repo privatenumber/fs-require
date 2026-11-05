@@ -21,6 +21,26 @@ export type {
 	fsRequire,
 };
 
+// Reference: https://github.com/nodejs/node/blob/v26.13.0/lib/internal/modules/cjs/loader.js#L324-L329
+const addChild = (parentModule: Module | undefined, child: Module) => {
+	const children = parentModule?.children;
+	if (children && !children.includes(child)) {
+		children.push(child);
+	}
+};
+
+// The module may have replaced module.parent.children while it ran,
+// so this checks that children is still an array, like Node.js does
+const removeChild = (parentModule: Module | undefined, child: Module) => {
+	const children = parentModule?.children;
+	if (Array.isArray(children)) {
+		const index = children.indexOf(child);
+		if (index !== -1) {
+			children.splice(index, 1);
+		}
+	}
+};
+
 let idCounter = 0;
 
 export const createFsRequire = (
@@ -63,6 +83,9 @@ export const createFsRequire = (
 
 			const cachedModule = moduleCache[filePath];
 			if (cachedModule) {
+				// Like Node.js, a cached module is still recorded as a child, so the edge
+				// of a circular require appears in module.children
+				addChild(parentModule, cachedModule);
 				return cachedModule.exports;
 			}
 
@@ -76,21 +99,13 @@ export const createFsRequire = (
 			try {
 				// Read here, not in runModule(), to keep file-system errors one frame from the caller
 				runModule(newModule, mfs.readFileSync(filePath).toString());
+				newModule.loaded = true;
 			} catch (error) {
 				delete moduleCache[filePath];
-
-				const children = parentModule?.children;
-				if (children) {
-					const index = children.indexOf(newModule);
-					if (index !== -1) {
-						children.splice(index, 1);
-					}
-				}
-
+				removeChild(parentModule, newModule);
 				throw error;
 			}
 
-			newModule.loaded = true;
 			return newModule.exports;
 		};
 

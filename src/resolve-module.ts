@@ -96,12 +96,14 @@ export const resolveModule = (
 	// share one cache entry
 	if (path.isAbsolute(modulePath)) {
 		modulePath = path.resolve(modulePath);
-	} else if (parentFilename) {
-		modulePath = path.resolve(path.dirname(parentFilename), modulePath);
 	} else {
-		// Without a caller file, a relative request stays relative, normalized so
-		// aliases such as ./a and a share one cache entry
-		modulePath = path.normalize(modulePath);
+		// Without a caller file, the entry and every module it loads have relative
+		// filenames. Joining keeps their requests relative, normalized so aliases
+		// such as ./a and a share one cache entry
+		const parentDirectory = parentFilename ? path.dirname(parentFilename) : '';
+		modulePath = path.isAbsolute(parentDirectory)
+			? path.resolve(parentDirectory, modulePath)
+			: path.join(parentDirectory, modulePath);
 	}
 
 	if (!isDirectoryRequest) {

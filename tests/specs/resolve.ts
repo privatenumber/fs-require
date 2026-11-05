@@ -287,6 +287,19 @@ describe('resolve', () => {
 		expect(fsRequire('./pkg')).toBe(fsRequire('./pkg/entry.js'));
 	});
 
+	// A module loaded from a relative path has a relative filename, so its own
+	// relative requires must stay in the same relative namespace
+	test('relative requests from a relative parent stay relative', () => {
+		const vol = Volume.fromJSON({
+			'./dir/a.js': 'module.exports = require.resolve("./b");',
+			'./dir/b.js': '',
+		});
+		const createWithoutCaller = vm.runInThisContext('(create, fs) => create(fs)');
+		const fsRequire = createWithoutCaller(createFsRequire, vol);
+
+		expect(fsRequire('./dir/a')).toBe(path.join('dir', 'b.js'));
+	});
+
 	// The resolved path is the cache key, so aliases of one file must match
 	test('absolute paths are normalized', () => {
 		const vol = Volume.fromJSON({

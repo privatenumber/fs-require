@@ -14,7 +14,7 @@ Index names are exact: `index.js.json` is not an index. Bare requests continue t
 
 - Resolution isn't cached: every `fsRequire()` call resolves its request again, including reading `package.json`. Node.js caches resolutions per request. fs-require re-resolves so that a test can change the virtual file-system, delete the entry from `fsRequire.cache`, and require again. As a result, a `package.json` that becomes malformed after its module is cached makes the next `fsRequire()` of that directory throw.
 - Only `main` is read from `package.json`. Node.js v26 also rejects invalid `name` and `type` values ([`node_modules.cc` L148-L156](https://github.com/nodejs/node/blob/v26.13.0/src/node_modules.cc#L148-L156)); fs-require doesn't use those fields, so it doesn't validate them.
-- Without a caller file, relative requests and a relative package's `main` stay relative, normalized with `path.normalize()` and `path.join()`, so the file-system resolves them from its own working directory.
+- Without a caller file, the entry, the modules it loads, and a relative package's `main` keep relative filenames, joined with `path.join()`, so the file-system resolves them from its own working directory and each file has one cache key.
 
 - The resolver does not try native `.node` addons or detect ESM. fs-require runs non-JSON files as CommonJS.
 - It does not apply `package.json` `exports` to relative paths.

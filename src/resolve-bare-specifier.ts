@@ -24,10 +24,11 @@ export const resolveBareSpecifier = (
 	stackStartFunction: (...arguments_: never[]) => unknown,
 ) => {
 	const fsSpecifier = modulePath.match(fsSpecifierPattern);
+	const fsOption = fsSpecifier ? options?.fs : undefined;
 
 	// `fs: true` loads the real fs module
-	if (fsSpecifier && options?.fs !== true) {
-		const shimFs = options?.fs || mfs;
+	if (fsSpecifier && fsOption !== true) {
+		const shimFs = fsOption || mfs;
 		const subpath = fsSpecifier[1];
 
 		if (!subpath) {

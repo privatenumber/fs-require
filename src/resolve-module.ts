@@ -4,9 +4,9 @@ import type { FileSystemLike } from './types.ts';
 const implicitExtensions = ['.js', '.json'];
 
 /**
- * Resolves a relative or absolute path to an exact file, a directory's
- * index.js or index.json, or the path with an implicit .js or .json extension,
- * in that order
+ * Resolves a relative or absolute path. An existing file resolves to itself,
+ * and an existing directory to its index.js or index.json, each resolved by
+ * these rules. Otherwise, the path with .js or .json appended
  */
 export const resolveModule = (
 	mfs: FileSystemLike,

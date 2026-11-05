@@ -57,11 +57,26 @@ const createInvalidPackageConfigError = (
 	},
 );
 
-// Like Node.js, a read failure is also an invalid package config
+// Like Node.js, a package.json that is missing or a directory means there's no
+// config, and any other read failure is an invalid config. It's read directly,
+// because existsSync() reports some access failures as missing
 // Reference: https://github.com/nodejs/node/blob/v26.13.0/src/node_modules.cc#L250-L263
-const parsePackageConfig = (mfs: FileSystemLike, packagePath: string): unknown => {
+const absentPackageConfigCodes = new Set(['ENOENT', 'ENOTDIR', 'EISDIR']);
+
+const readPackageSource = (mfs: FileSystemLike, packagePath: string) => {
 	try {
-		return JSON.parse(mfs.readFileSync(packagePath).toString().replace(/^\uFEFF/, ''));
+		return mfs.readFileSync(packagePath).toString();
+	} catch (error) {
+		if (absentPackageConfigCodes.has((error as NodeJS.ErrnoException).code ?? '')) {
+			return;
+		}
+		throw createInvalidPackageConfigError(packagePath, error);
+	}
+};
+
+const parsePackageConfig = (source: string, packagePath: string): unknown => {
+	try {
+		return JSON.parse(source.replace(/^\uFEFF/, ''));
 	} catch (error) {
 		throw createInvalidPackageConfigError(packagePath, error);
 	}
@@ -72,26 +87,37 @@ const parsePackageConfig = (mfs: FileSystemLike, packagePath: string): unknown =
 // See notes/fs-require/module-resolution.md for edge cases where Node.js's
 // own package.json reader differs
 // Reference: https://github.com/nodejs/node/blob/v26.13.0/src/node_modules.cc#L128-L130
-const readPackageConfig = (mfs: FileSystemLike, packagePath: string) => {
-	const config = parsePackageConfig(mfs, packagePath);
+const readPackageMain = (mfs: FileSystemLike, packagePath: string): unknown => {
+	const source = readPackageSource(mfs, packagePath);
+	if (source === undefined) {
+		return;
+	}
+
+	const config = parsePackageConfig(source, packagePath);
 	if (typeof config !== 'object' || config === null || Array.isArray(config)) {
 		throw createInvalidPackageConfigError(packagePath);
 	}
 
-	return config as { main?: unknown };
+	// Only an own property, so a polluted Object.prototype.main is ignored
+	return Object.prototype.hasOwnProperty.call(config, 'main')
+		? (config as { main: unknown }).main
+		: undefined;
 };
 
 // A non-string or empty package.json#main is ignored, like Node.js v26.
 // Node.js 12 also ignores a falsy main, but throws for a truthy non-string
 // one, such as 5. fs-require keeps the v26 behavior on every runtime
 const loadAsDirectory = (mfs: FileSystemLike, directory: string): string | undefined => {
-	const packagePath = path.join(directory, 'package.json');
-	if (isFile(mfs, packagePath)) {
-		const { main } = readPackageConfig(mfs, packagePath);
-		if (typeof main === 'string' && main) {
-			const mainPath = resolvePath(directory, main);
-			return loadAsFile(mfs, mainPath) ?? loadIndex(mfs, mainPath) ?? loadIndex(mfs, directory);
-		}
+	const main = readPackageMain(mfs, path.join(directory, 'package.json'));
+	if (typeof main === 'string' && main) {
+		const mainPath = resolvePath(directory, main);
+
+		// Without a caller file, a main that normalizes to . or .. can't be tried
+		// as a file, because the working directory's own name isn't known
+		const isDotPath = ['.', '..'].includes(path.basename(mainPath));
+		return (isDotPath ? undefined : loadAsFile(mfs, mainPath))
+			?? loadIndex(mfs, mainPath)
+			?? loadIndex(mfs, directory);
 	}
 
 	return loadIndex(mfs, directory);

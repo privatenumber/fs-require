@@ -307,6 +307,75 @@ describe('resolve', () => {
 		}));
 	});
 
+	// Like Node.js, a package.json that is a directory means there's no config
+	test('package.json that is a directory', () => {
+		const vol = Volume.fromJSON({
+			'/pkg/package.json/file': '',
+			'/pkg/index.js': '',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire.resolve('/pkg')).toBe('/pkg/index.js');
+	});
+
+	// existsSync() reports some access failures as missing, so the config is read directly
+	test('inaccessible package.json that existsSync() hides', () => {
+		const vol = Volume.fromJSON({
+			'/pkg/package.json': '{}',
+			'/pkg/index.js': '',
+		});
+		const mfs = Object.assign(Object.create(vol), {
+			existsSync: (filePath: string) => filePath !== '/pkg/package.json' && vol.existsSync(filePath),
+			lstatSync: vol.lstatSync.bind(vol),
+			readFileSync: (filePath: string) => {
+				if (filePath === '/pkg/package.json') {
+					throw Object.assign(new Error('EACCES'), { code: 'EACCES' });
+				}
+				return vol.readFileSync(filePath);
+			},
+		});
+		const fsRequire = createFsRequire(mfs);
+
+		expect(() => fsRequire.resolve('/pkg')).toThrow(expect.objectContaining({
+			code: 'ERR_INVALID_PACKAGE_CONFIG',
+		}));
+	});
+
+	test('inherited main is ignored', () => {
+		const vol = Volume.fromJSON({
+			'/pkg/package.json': '{}',
+			'/pkg/index.js': '',
+			'/alternate.js': '',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		// eslint-disable-next-line no-extend-native -- Simulates prototype pollution
+		Object.defineProperty(Object.prototype, 'main', {
+			value: '../alternate.js',
+			configurable: true,
+		});
+		try {
+			expect(fsRequire.resolve('/pkg')).toBe('/pkg/index.js');
+		} finally {
+			// @ts-expect-error -- Removing the property this test added
+			delete Object.prototype.main; // eslint-disable-line no-use-extend-native/no-use-extend-native
+		}
+	});
+
+	// Without a caller file, the working directory's name isn't known, so a main
+	// that normalizes to . or .. isn't tried as a file
+	test('relative main of .. without a caller file', () => {
+		const vol = Volume.fromJSON({
+			'./pkg/package.json': '{"main":".."}',
+			'./pkg/index.js': '',
+			'./..js': '',
+		});
+		const createWithoutCaller = vm.runInThisContext('(create, fs) => create(fs)');
+		const fsRequire = createWithoutCaller(createFsRequire, vol);
+
+		expect(fsRequire.resolve('./pkg')).toBe(`.${path.sep}${path.join('pkg', 'index.js')}`);
+	});
+
 	// Without a caller file, relative requests stay relative to the file-system's
 	// own working directory, so a package's main must not become absolute
 	test('relative package main without a caller file', () => {

@@ -95,7 +95,7 @@ Type: `string`
 
 Required
 
-Path to the module you want to "resolve". Mocks Node.js [`require.resolve`](https://nodejs.org/api/modules.html#requireresolverequest-options) for paths that start with `/` or `.`: it returns the matching path in the file-system, and throws a `MODULE_NOT_FOUND` error when nothing matches. A path matches an existing file, a directory's `index.js` or `index.json` (`package.json#main` is not read), or the path with `.js` or `.json` appended.
+Path to the module you want to "resolve". Mocks Node.js [`require.resolve`](https://nodejs.org/api/modules.html#requireresolverequest-options) for paths that start with `/` or `.` or are absolute on the current platform: it returns the matching path in the file-system, and throws a `MODULE_NOT_FOUND` error when nothing matches. It tries the path as a file, then with `.js` and `.json` appended, before looking for a directory. For a directory, it reads `package.json#main` if present and tries that path as a file or a directory index. If it does not match, it tries the directory's `index.js` and `index.json`.
 
 Any other request, such as a package name, is returned unchanged without checking that it is installed, because `fsRequire()` doesn't read it from the file-system: it passes it to Node.js, except for the `fs` requests that the [`fs` option](#optionsfs) shims.
 

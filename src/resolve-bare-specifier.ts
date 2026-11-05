@@ -1,9 +1,12 @@
 import { createRequire } from 'module';
+import path from 'path';
 import type { Options, FileSystemLike } from './types.ts';
 import { createModuleNotFoundError } from './utils/module-not-found-error.ts';
 
 const isFilePathPattern = /^[./]/;
-export const isBareSpecifier = (modulePath: string) => !isFilePathPattern.test(modulePath);
+export const isBareSpecifier = (modulePath: string) => (
+	!isFilePathPattern.test(modulePath) && !path.isAbsolute(modulePath)
+);
 
 // fs, node:fs, and their subpaths, such as fs/promises
 const fsSpecifierPattern = /^(?:node:)?fs(\/.+)?$/;

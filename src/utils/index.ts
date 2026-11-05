@@ -3,7 +3,7 @@ import { type FileSystemLike, implicitExtensions } from '../types.ts';
 export const hasValidExtensionPattern = new RegExp(
 	`(${
 		implicitExtensions
-			.map(extension => extension.replace(/\./g, '\\$&'))
+			.map(extension => extension.replace(/\./g, String.raw`\$&`))
 			.join('|')
 	})$`,
 );

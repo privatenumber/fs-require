@@ -24,7 +24,10 @@ describe('fs-require', () => {
 				skip('Node.js has no darwin-arm64 build before v16');
 			}
 
-			packageSpec(createNode(async () => (await getNode(version)).path));
+			packageSpec(createNode(async () => {
+				const node = await getNode(version);
+				return node.path;
+			}));
 		});
 	}
 });

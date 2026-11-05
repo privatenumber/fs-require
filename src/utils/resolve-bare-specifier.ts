@@ -10,11 +10,11 @@ const parseBareSpecifier = (
 
 const realRequire = require;
 
-export function resolveBareSpecifier(
+export const resolveBareSpecifier = (
 	mfs: FileSystemLike,
 	modulePath: string,
 	options?: Options,
-) {
+) => {
 	const [moduleName, moduleSubpath] = parseBareSpecifier(modulePath) ?? [];
 
 	if (moduleName === 'fs') {
@@ -37,4 +37,4 @@ export function resolveBareSpecifier(
 	}
 
 	return realRequire(modulePath);
-}
+};

@@ -6,6 +6,8 @@ permissions:
     skills: true
   fs-fixture:
     skills: true
+  lintroll:
+    skills: true
   manten:
     skills: true
 

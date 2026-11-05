@@ -29,7 +29,8 @@ const loaders: Loaders = { /*
 /**
  * Extensionless JS files
  */
-loaders[''] = function (newModule, sourceCode, makeRequire, filename, id) {
+// eslint-disable-next-line unicorn/no-immediate-mutation -- Keeps the function anonymous
+loaders[''] = (newModule, sourceCode, makeRequire, filename, id) => {
 	const moduleWrappedSourceCode = Module.wrap(sourceCode);
 
 	// Reference: https://github.com/nodejs/node/blob/master/lib/internal/modules/cjs/loader.js#L1028
@@ -48,7 +49,7 @@ loaders[''] = function (newModule, sourceCode, makeRequire, filename, id) {
 
 loaders['.js'] = loaders[''];
 
-loaders['.json'] = function (newModule, sourceCode) {
+loaders['.json'] = (newModule, sourceCode) => {
 	newModule.exports = JSON.parse(sourceCode);
 };
 
@@ -62,10 +63,10 @@ export const createFsRequire = (
 	const fsRequireId = idCounter;
 	const moduleCache: ModuleCache = Object.create(null);
 
-	function makeRequireFunction(
+	const makeRequireFunction = (
 		parentModule?: Module,
 		parentFilename = parentModule?.filename,
-	): fsRequire {
+	): fsRequire => {
 		const resolve = (modulePath: string) => {
 			if (isBareSpecifier(modulePath)) {
 				return modulePath;
@@ -108,7 +109,7 @@ export const createFsRequire = (
 		require.cache = moduleCache;
 
 		return require;
-	}
+	};
 
 	// Relative paths passed to the returned function resolve from the caller's file
 	return makeRequireFunction(undefined, getCallerFilename(createFsRequire));

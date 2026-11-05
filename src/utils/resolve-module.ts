@@ -12,13 +12,13 @@ import {
 type Resolved = {
 	extension: (typeof loaderTypes)[number];
 	filePath: string;
-}
+};
 
-function resolveModuleSafe(
+const resolveModuleSafe = (
 	mfs: FileSystemLike,
 	modulePath: string,
 	parentFilename?: string,
-): Resolved | null {
+): Resolved | null => {
 	if (!path.isAbsolute(modulePath) && parentFilename) {
 		modulePath = path.resolve(path.dirname(parentFilename), modulePath);
 	}
@@ -51,13 +51,13 @@ function resolveModuleSafe(
 	}
 
 	return null;
-}
+};
 
-export function resolveModule(
+export const resolveModule = (
 	mfs: FileSystemLike,
 	modulePath: string,
 	parentFilename?: string,
-) {
+) => {
 	const resolved = resolveModuleSafe(mfs, modulePath, parentFilename);
 
 	if (!resolved) {
@@ -65,4 +65,4 @@ export function resolveModule(
 	}
 
 	return resolved;
-}
+};

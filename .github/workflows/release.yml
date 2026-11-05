@@ -2,7 +2,13 @@ name: Release
 
 on:
   push:
-    branches: master
+    branches: [master]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
 
 jobs:
   release:
@@ -12,21 +18,23 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version-file: .nvmrc
+          token: ${{ secrets.GH_TOKEN }}
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      # npm comes from setup-node: the Node.js that pnpm/setup installs from
+      # devEngines.runtime ships without npm, and npm trusted publishing (OIDC)
+      # needs a newer npm than the runner's preinstalled one
+      - name: Setup Node.js and npm
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          version: 7
-          run_install: true
+          node-version-file: package.json
 
-      - name: Build
-        run: pnpm build
+      - name: Setup pnpm and dependencies
+        uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3.1.2
+        with:
+          cache: true
+          require-lockfile: true
 
       - name: Lint
         run: pnpm lint
@@ -37,5 +45,4 @@ jobs:
       - name: Release
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: pnpm dlx semantic-release

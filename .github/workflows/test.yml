@@ -13,21 +13,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Use Node.js
-        uses: actions/setup-node@v3
+      - name: Setup Node.js, pnpm, and dependencies
+        uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3.1.2
         with:
-          node-version-file: .nvmrc
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-        with:
-          version: 7
-          run_install: true
-
-      - name: Build
-        run: pnpm build
+          cache: true
+          require-lockfile: true
 
       - name: Lint
         run: pnpm lint
@@ -35,8 +27,6 @@ jobs:
       - name: Type check
         run: pnpm type-check
 
+      # Builds, then runs the package on each Node.js version in tests/index.ts
       - name: Test
         run: pnpm test
-
-      - name: Test v12
-        run: pnpm --use-node-version=12.22.12 test

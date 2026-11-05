@@ -129,4 +129,24 @@ describe('resolve', () => {
 			expect(fsRequire.resolve('fs')).toBe('fs');
 		});
 	});
+
+	describe('resolve package', () => {
+		// fsRequire() reads absolute paths from the file-system, so a package's
+		// resolved path wouldn't load it. The specifier does
+		test('returns the specifier, which fsRequire() loads', () => {
+			const vol = Volume.fromJSON({});
+			const fsRequire = createFsRequire(vol);
+
+			expect(fsRequire.resolve('memfs')).toBe('memfs');
+			expect(fsRequire(fsRequire.resolve('memfs'))).toBe(fsRequire('memfs'));
+		});
+
+		// Wrappers that load packages from elsewhere forward resolve()
+		test('does not check that the package exists', () => {
+			const vol = Volume.fromJSON({});
+			const fsRequire = createFsRequire(vol);
+
+			expect(fsRequire.resolve('missing-package')).toBe('missing-package');
+		});
+	});
 });

@@ -4,6 +4,7 @@ import {
 	type LoaderExtension,
 	implicitExtensions,
 } from './types.ts';
+import { createModuleNotFoundError } from './utils/module-not-found-error.ts';
 
 type Resolved = {
 	extension: LoaderExtension;
@@ -65,7 +66,7 @@ export const resolveModule = (
 	const resolved = resolveModuleSafe(mfs, modulePath, parentFilename);
 
 	if (!resolved) {
-		throw new Error(`Cannot find module '${modulePath}'`);
+		throw createModuleNotFoundError(modulePath);
 	}
 
 	return resolved;

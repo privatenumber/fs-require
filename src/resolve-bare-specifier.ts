@@ -1,4 +1,5 @@
 import type { Options, FileSystemLike } from './types.ts';
+import { createModuleNotFoundError } from './utils/module-not-found-error.ts';
 
 const isFilePathPattern = /^[./]/;
 export const isBareSpecifier = (modulePath: string) => !isFilePathPattern.test(modulePath);
@@ -32,7 +33,7 @@ export const resolveBareSpecifier = (
 				return shimFs.promises;
 			}
 
-			throw new Error(`Cannot find module '${modulePath}'`);
+			throw createModuleNotFoundError(modulePath);
 		}
 	}
 

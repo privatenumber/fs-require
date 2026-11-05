@@ -153,6 +153,25 @@ describe('fs-require', () => {
 		});
 	});
 
+	// Code that requires optional modules checks this code, like Node.js require()
+	test('Missing modules throw MODULE_NOT_FOUND', () => {
+		const vol = Volume.fromJSON({
+			'/index.js': `
+				const getCode = (request) => {
+					try {
+						require(request);
+					} catch (error) {
+						return error.code;
+					}
+				};
+				module.exports = [getCode('./missing'), getCode('fs/missing')];
+			`,
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire('/index')).toStrictEqual(['MODULE_NOT_FOUND', 'MODULE_NOT_FOUND']);
+	});
+
 	test('Modules are cached', () => {
 		const vol = Volume.fromJSON({
 			'/test-module.js': 'module.exports = Math.random();',

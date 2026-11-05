@@ -1,0 +1,10 @@
+allowBuilds:
+  esbuild: false
+
+permissions:
+  clean-pkg-json:
+    skills: true
+
+skills:
+  dirs:
+    - .agents/skills

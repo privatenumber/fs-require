@@ -39,6 +39,7 @@
 			"default": "./dist/index.cjs"
 		}
 	},
+	"packageManager": "pnpm@12.16.1",
 	"scripts": {
 		"lint": "eslint --cache .",
 		"type-check": "tsc --noEmit",
@@ -60,5 +61,12 @@
 	},
 	"eslintConfig": {
 		"extends": "@pvtnbr/eslint-config"
+	},
+	"devEngines": {
+		"runtime": {
+			"name": "node",
+			"version": "26.13.0",
+			"onFail": "download"
+		}
 	}
 }

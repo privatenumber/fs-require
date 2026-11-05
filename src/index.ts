@@ -5,7 +5,6 @@ import type {
 	Options,
 	FileSystemLike,
 	fsRequire,
-	Loaders,
 	ModuleCache,
 } from './types.ts';
 import {
@@ -22,40 +21,6 @@ export type {
 	fsRequire,
 };
 
-// Loaders are assigned after creation to keep them anonymous in stack traces
-const loaders: Loaders = {
-	'': undefined,
-	'.js': undefined,
-	'.json': undefined,
-};
-
-/**
- * Extensionless JS files
- */
-// eslint-disable-next-line unicorn/no-immediate-mutation -- Keeps the function anonymous
-loaders[''] = (newModule, sourceCode, makeRequire, filename, id) => {
-	const moduleWrappedSourceCode = Module.wrap(sourceCode);
-
-	// Reference: https://github.com/nodejs/node/blob/v26.13.0/lib/internal/modules/cjs/loader.js#L1954-L1968
-	vm.runInThisContext(moduleWrappedSourceCode, {
-		filename: `fs-require://${id}${filename}`,
-		lineOffset: 0,
-		displayErrors: true,
-	})(
-		newModule.exports,
-		makeRequire(newModule),
-		newModule,
-		filename,
-		path.dirname(filename),
-	);
-};
-
-loaders['.js'] = loaders[''];
-
-loaders['.json'] = (newModule, sourceCode) => {
-	newModule.exports = JSON.parse(sourceCode);
-};
-
 let idCounter = 0;
 
 export const createFsRequire = (
@@ -68,51 +33,42 @@ export const createFsRequire = (
 	const callerFilename = getCallerFilename(createFsRequire);
 	const callerRequire = createCallerRequire(callerFilename);
 
-	const makeRequireFunction = (
+	const makeRequire = (
+		parentFilename: string | undefined,
 		parentModule?: Module,
-		parentFilename = parentModule?.filename,
 	): fsRequire => {
-		const resolve = (modulePath: string) => {
-			if (isBareSpecifier(modulePath)) {
-				return modulePath;
+		const resolveFilePath = (
+			modulePath: string,
+			stackStartFunction: (...arguments_: never[]) => unknown,
+		) => {
+			const filePath = resolveModule(mfs, modulePath, parentFilename);
+			if (!filePath) {
+				throw createModuleNotFoundError(modulePath, stackStartFunction);
 			}
-			const resolved = resolveModule(mfs, modulePath, parentFilename);
-			if (!resolved) {
-				throw createModuleNotFoundError(modulePath, resolve);
-			}
-			return resolved.filePath;
+			return filePath;
 		};
+
+		const resolve = (modulePath: string) => (
+			isBareSpecifier(modulePath)
+				? modulePath
+				: resolveFilePath(modulePath, resolve)
+		);
 
 		const require: fsRequire = (modulePath: string) => {
 			if (isBareSpecifier(modulePath)) {
 				return resolveBareSpecifier(mfs, modulePath, options, callerRequire, require);
 			}
 
-			const resolvedPath = resolveModule(mfs, modulePath, parentFilename);
-			if (!resolvedPath) {
-				throw createModuleNotFoundError(modulePath, require);
-			}
-			const { filePath } = resolvedPath;
-
-			let importedModule = moduleCache[filePath];
-
-			if (!importedModule) {
-				importedModule = new Module(filePath, parentModule);
-				importedModule.filename = filePath;
-
+			const filePath = resolveFilePath(modulePath, require);
+			let cachedModule = moduleCache[filePath];
+			if (!cachedModule) {
+				// Read here, not in loadModule(), to keep file-system errors one frame from the caller
 				const sourceCode = mfs.readFileSync(filePath).toString();
-				loaders[resolvedPath.extension]?.(
-					importedModule,
-					sourceCode,
-					makeRequireFunction,
-					filePath,
-					fsRequireId,
-				);
-
-				moduleCache[filePath] = importedModule;
+				cachedModule = loadModule(filePath, sourceCode, parentModule);
+				moduleCache[filePath] = cachedModule;
 			}
 
-			return importedModule.exports;
+			return cachedModule.exports;
 		};
 
 		require.id = fsRequireId;
@@ -122,6 +78,35 @@ export const createFsRequire = (
 		return require;
 	};
 
+	const loadModule = (
+		filePath: string,
+		sourceCode: string,
+		parentModule?: Module,
+	) => {
+		const newModule = new Module(filePath, parentModule);
+		newModule.filename = filePath;
+
+		// Any path that doesn't end in .json loads as JavaScript
+		if (filePath.endsWith('.json')) {
+			newModule.exports = JSON.parse(sourceCode);
+		} else {
+			// Reference: https://github.com/nodejs/node/blob/v26.13.0/lib/internal/modules/cjs/loader.js#L1954-L1968
+			vm.runInThisContext(Module.wrap(sourceCode), {
+				filename: `fs-require://${fsRequireId}${filePath}`,
+				lineOffset: 0,
+				displayErrors: true,
+			})(
+				newModule.exports,
+				makeRequire(filePath, newModule),
+				newModule,
+				filePath,
+				path.dirname(filePath),
+			);
+		}
+
+		return newModule;
+	};
+
 	// Relative paths passed to the returned function resolve from the caller's file
-	return makeRequireFunction(undefined, callerFilename);
+	return makeRequire(callerFilename);
 };

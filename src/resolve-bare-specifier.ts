@@ -5,10 +5,8 @@ import { createModuleNotFoundError } from './utils/module-not-found-error.ts';
 const isFilePathPattern = /^[./]/;
 export const isBareSpecifier = (modulePath: string) => !isFilePathPattern.test(modulePath);
 
-const specifierPattern = /^(?:node:)?((?:@[\da-z][\w.-]+\/)?[\da-z][\w.-]+)(\/.+)?$/;
-const parseBareSpecifier = (
-	modulePath: string,
-) => modulePath.match(specifierPattern)?.slice(1, 3);
+// fs, node:fs, and their subpaths, such as fs/promises
+const fsSpecifierPattern = /^(?:node:)?fs(\/.+)?$/;
 
 /**
  * Bare specifiers resolve from the createFsRequire() caller, like relative
@@ -25,25 +23,23 @@ export const resolveBareSpecifier = (
 	callerRequire: NodeJS.Require,
 	stackStartFunction: (...arguments_: never[]) => unknown,
 ) => {
-	const [moduleName, moduleSubpath] = parseBareSpecifier(modulePath) ?? [];
+	const fsSpecifier = modulePath.match(fsSpecifierPattern);
+	const fsOption = fsSpecifier ? options?.fs : undefined;
 
-	if (moduleName === 'fs') {
-		const { fs } = options ?? {};
+	// `fs: true` loads the real fs module
+	if (fsSpecifier && fsOption !== true) {
+		const shimFs = fsOption || mfs;
+		const subpath = fsSpecifier[1];
 
-		// If true, use native fs (can still be truthy)
-		if (fs !== true) {
-			const shimFs = fs || mfs;
-
-			if (!moduleSubpath) {
-				return shimFs;
-			}
-
-			if (moduleSubpath === '/promises' && ('promises' in shimFs)) {
-				return shimFs.promises;
-			}
-
-			throw createModuleNotFoundError(modulePath, stackStartFunction);
+		if (!subpath) {
+			return shimFs;
 		}
+
+		if (subpath === '/promises' && ('promises' in shimFs)) {
+			return shimFs.promises;
+		}
+
+		throw createModuleNotFoundError(modulePath, stackStartFunction);
 	}
 
 	return callerRequire(modulePath);

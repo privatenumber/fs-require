@@ -1,9 +1,9 @@
 # Bare specifier resolution
 
-A bare specifier such as `require('lodash')` inside a virtual module resolves from the file that called `createFsRequire()`, through `createRequire(callerFilename)`. That is the same base that [caller-relative-resolution.md](./caller-relative-resolution.md) uses for relative paths. When the caller has no file, such as `node -e`, it resolves from fs-require's own location. The `fs` shim (`require('fs')` and `require('fs/promises')`) is handled before this step.
+A bare specifier such as `require('lodash')` inside a virtual module resolves from the file that called `createFsRequire()`, through `createRequire(callerFilename)`. That is the same base that [caller-relative-resolution.md](./caller-relative-resolution.md) uses for relative paths. When the caller has no file, such as `node -e`, it resolves from fs-require's own location. The `fs` shim (`require('fs')` and `require('fs/promises')`) is handled before this step. `fsRequire.resolve()` resolves bare specifiers with the same `require`, so it returns what `require.resolve()` returns from the caller, such as `'fs'` for a built-in module.
 
 - Implementation: `createCallerRequire()` in [`src/resolve-bare-specifier.ts`](../../src/resolve-bare-specifier.ts), created once per `createFsRequire()` call in [`src/index.ts`](../../src/index.ts).
-- Contract: the "bare specifiers resolve from the caller" test in [`tests/specs/package.ts`](../../tests/specs/package.ts), for CommonJS and ESM callers, on the current Node.js version and on Node.js 12.22.12 in CI.
+- Contract: the "bare specifiers resolve from the caller" test in [`tests/specs/package.ts`](../../tests/specs/package.ts), for CommonJS and ESM callers, on the current Node.js version and on Node.js 12.22.12 in CI. The "resolve package" tests in [`tests/specs/resolve.ts`](../../tests/specs/resolve.ts) cover `fsRequire.resolve()`.
 - [`module.createRequire()`](https://github.com/nodejs/node/blob/v26.13.0/doc/api/module.md#L54-L72) was added in Node.js v12.2.0, below the 12.22 floor.
 
 Last verified 2026-11-05 on Node.js v26.13.0 (macOS arm64).

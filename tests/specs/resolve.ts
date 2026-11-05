@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { describe, test, expect } from 'manten';
 import { Volume } from 'memfs';
 import { createFsRequire } from '#fs-require';
@@ -127,6 +128,23 @@ describe('resolve', () => {
 			});
 
 			expect(fsRequire.resolve('fs')).toBe('fs');
+		});
+	});
+
+	describe('resolve package', () => {
+		test('resolves from the caller, like require.resolve()', () => {
+			const vol = Volume.fromJSON({});
+			const fsRequire = createFsRequire(vol);
+
+			const require = createRequire(import.meta.url);
+			expect(fsRequire.resolve('memfs')).toBe(require.resolve('memfs'));
+		});
+
+		test('missing package', () => {
+			const vol = Volume.fromJSON({});
+			const fsRequire = createFsRequire(vol);
+
+			expect(() => fsRequire.resolve('missing-package')).toThrow('Cannot find module \'missing-package\'');
 		});
 	});
 });

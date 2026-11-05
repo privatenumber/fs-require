@@ -50,7 +50,7 @@ export const createFsRequire = (
 
 		const resolve = (modulePath: string) => (
 			isBareSpecifier(modulePath)
-				? modulePath
+				? callerRequire.resolve(modulePath)
 				: resolveFilePath(modulePath, resolve)
 		);
 

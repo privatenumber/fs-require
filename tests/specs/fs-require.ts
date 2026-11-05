@@ -38,11 +38,11 @@ describe('fs-require', () => {
 		expect(fsRequire('/index')).toEqual([
 			{
 				dirname: '/',
-				filename: 'index.js',
+				filename: '/index.js',
 			},
 			{
 				dirname: '/some/nested/directory',
-				filename: 'file.js',
+				filename: '/some/nested/directory/file.js',
 			},
 		]);
 	});

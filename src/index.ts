@@ -62,7 +62,9 @@ export const createFsRequire = (
 			const filePath = resolveFilePath(modulePath, require);
 			let cachedModule = moduleCache[filePath];
 			if (!cachedModule) {
-				cachedModule = loadModule(filePath, parentModule);
+				// Read here, not in loadModule(), to keep file-system errors one frame from the caller
+				const sourceCode = mfs.readFileSync(filePath).toString();
+				cachedModule = loadModule(filePath, sourceCode, parentModule);
 				moduleCache[filePath] = cachedModule;
 			}
 
@@ -78,12 +80,11 @@ export const createFsRequire = (
 
 	const loadModule = (
 		filePath: string,
+		sourceCode: string,
 		parentModule?: Module,
 	) => {
 		const newModule = new Module(filePath, parentModule);
 		newModule.filename = filePath;
-
-		const sourceCode = mfs.readFileSync(filePath).toString();
 
 		// Any path that doesn't end in .json loads as JavaScript
 		if (filePath.endsWith('.json')) {

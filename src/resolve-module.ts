@@ -48,7 +48,11 @@ export const resolveModule = (
 	modulePath: string,
 	parentFilename?: string,
 ): string | undefined => {
-	if (!path.isAbsolute(modulePath) && parentFilename) {
+	// Like Node.js, absolute paths are normalized, so aliases such as /a/../b
+	// share one cache entry
+	if (path.isAbsolute(modulePath)) {
+		modulePath = path.resolve(modulePath);
+	} else if (parentFilename) {
 		modulePath = path.resolve(path.dirname(parentFilename), modulePath);
 	}
 

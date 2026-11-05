@@ -230,6 +230,18 @@ describe('resolve', () => {
 		});
 	});
 
+	// The resolved path is the cache key, so aliases of one file must match
+	test('absolute paths are normalized', () => {
+		const vol = Volume.fromJSON({
+			'/a.js': 'module.exports = {};',
+			'/sub/index.js': '',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire.resolve('/sub/../a')).toBe('/a.js');
+		expect(fsRequire('/sub/../a')).toBe(fsRequire('/a'));
+	});
+
 	describe('resolve package', () => {
 		// fsRequire() reads absolute paths from the file-system, so a package's
 		// resolved path may be missing there, or run there as a separate instance.

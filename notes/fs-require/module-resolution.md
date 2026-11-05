@@ -1,6 +1,6 @@
 # File and directory resolution
 
-For a relative or absolute file request, fs-require tries a file before a directory. It resolves relative requests from the parent file's directory when a parent is available. The implementation is in [`src/resolve-module.ts`](../../src/resolve-module.ts); the observable cases are in [`tests/specs/resolve.ts`](../../tests/specs/resolve.ts).
+For a relative or absolute file request, fs-require tries a file before a directory. It resolves relative requests from the parent file's directory when a parent is available. Absolute requests are normalized with `path.resolve()`, as Node.js does, so an alias such as `/sub/../a` resolves to `/a.js` and shares its cache entry. Before this, `require('/sub/../a.js')` and `require('/a.js')` created two instances of the same file. The implementation is in [`src/resolve-module.ts`](../../src/resolve-module.ts); the observable cases are in [`tests/specs/resolve.ts`](../../tests/specs/resolve.ts).
 
 The resolver follows the file and directory parts of the [Node.js v26.13.0 CommonJS algorithm](https://github.com/nodejs/node/blob/v26.13.0/doc/api/modules.md#L368-L400), with the limitations below:
 

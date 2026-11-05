@@ -41,15 +41,15 @@ When virtual files are on the real disk and come from another project than the c
 
 ## `fsRequire.resolve()`
 
-For a bare specifier, `fsRequire.resolve()` returns the specifier unchanged and doesn't check that it resolves. This is the behavior since v1.
+For a bare specifier, `fsRequire.resolve()` returns the specifier unchanged and doesn't check that it resolves. This has been the behavior since `resolve()` was added in v1.4.0.
 
 Decided 2026-11-06, verified on Node.js v26.13.0 (macOS arm64). Contract: the "resolve package" tests in [`tests/specs/resolve.ts`](../../tests/specs/resolve.ts).
 
 ### Why not return the resolved path, like Node.js
 
-Node.js documents `require.resolve()` as using "the internal `require()` machinery to look up the location of a module, but rather than loading the module, just return the resolved filename" ([`modules.md` L996-L1019 at v26.13.0](https://github.com/nodejs/node/blob/v26.13.0/doc/api/modules.md#L996-L1019)). So the returned value is an ID that `require()` loads as the same module. fs-require keeps that invariant: `fsRequire(fsRequire.resolve(x))` loads what `fsRequire(x)` loads.
+Node.js documents `require.resolve()` as using "the internal `require()` machinery to look up the location of a module, but rather than loading the module, just return the resolved filename" ([`modules.md` L996-L1019 at v26.13.0](https://github.com/nodejs/node/blob/v26.13.0/doc/api/modules.md#L996-L1019)). So the returned value is an ID that `require()` loads as the same module. fs-require keeps that invariant for bare specifiers: `fsRequire(fsRequire.resolve(x))` loads what `fsRequire(x)` loads.
 
-fs-require has two namespaces: an absolute path names a file in the virtual file-system, and a bare specifier names a real module loaded by Node.js. The resolved path of a real package is an absolute path, so `fsRequire()` reads it from the virtual file-system. Observed with a build that returned the resolved path:
+fs-require has two namespaces: a request that starts with `/` or `.` names a file in the virtual file-system, and any other request, a bare specifier, is loaded by Node.js, except the `fs` specifiers that the shim provides. The resolved path of a real package is an absolute path, so `fsRequire()` reads it from the virtual file-system. Observed with a build that returned the resolved path:
 
 - With memfs, the file doesn't exist there:
 

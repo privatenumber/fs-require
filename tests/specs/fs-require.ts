@@ -160,6 +160,21 @@ export default testSuite(({ describe }) => {
 			expect(result).toBe('hello world');
 		});
 
+		describe('Relative paths resolve from the caller', ({ test }) => {
+			const fixturePath = path.join(__dirname, '../fixtures/caller-relative');
+
+			// https://github.com/privatenumber/fs-require/issues/10
+			test('Not from the first module that loaded fs-require', () => {
+				const result = execFileSync(process.execPath, [path.join(fixturePath, 'main.cjs')], { encoding: 'utf8' });
+				expect(result).toBe('b/file');
+			});
+
+			test('ESM caller', () => {
+				const result = execFileSync(process.execPath, [path.join(fixturePath, 'esm/index.mjs')], { encoding: 'utf8' });
+				expect(result).toBe('esm/file');
+			});
+		});
+
 		test('Modules are cached', () => {
 			const vol = Volume.fromJSON({
 				'/test-module.js': 'module.exports = Math.random();',

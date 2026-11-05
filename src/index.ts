@@ -10,6 +10,7 @@ import {
 } from './types';
 import { isBareSpecifier, resolveBareSpecifier } from './utils/resolve-bare-specifier';
 import { resolveModule } from './utils/resolve-module';
+import { getCallerFilename } from './utils/get-caller-filename';
 
 export type {
 	FileSystemLike as FileSystem,
@@ -61,12 +62,15 @@ export const createFsRequire = (
 	const fsRequireId = idCounter;
 	const moduleCache: ModuleCache = Object.create(null);
 
-	function makeRequireFunction(parentModule?: Module | null): fsRequire {
+	function makeRequireFunction(
+		parentModule?: Module,
+		parentFilename = parentModule?.filename,
+	): fsRequire {
 		const resolve = (modulePath: string) => {
 			if (isBareSpecifier(modulePath)) {
 				return modulePath;
 			}
-			const resolved = resolveModule(mfs, modulePath, parentModule);
+			const resolved = resolveModule(mfs, modulePath, parentFilename);
 			return resolved.filePath;
 		};
 
@@ -75,13 +79,13 @@ export const createFsRequire = (
 				return resolveBareSpecifier(mfs, modulePath, options);
 			}
 
-			const resolvedPath = resolveModule(mfs, modulePath, parentModule);
+			const resolvedPath = resolveModule(mfs, modulePath, parentFilename);
 			const { filePath } = resolvedPath;
 
 			let importedModule = moduleCache[filePath];
 
 			if (!importedModule) {
-				importedModule = new Module(filePath, parentModule || undefined);
+				importedModule = new Module(filePath, parentModule);
 				importedModule.filename = filePath;
 
 				const sourceCode = mfs.readFileSync(filePath).toString();
@@ -106,5 +110,6 @@ export const createFsRequire = (
 		return require;
 	}
 
-	return makeRequireFunction(typeof module === 'undefined' ? undefined : module.parent);
+	// Relative paths passed to the returned function resolve from the caller's file
+	return makeRequireFunction(undefined, getCallerFilename(createFsRequire));
 };

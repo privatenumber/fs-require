@@ -86,6 +86,8 @@ Required
 
 Path to the module you want to "require". Mocks Node.js [`require`](https://nodejs.org/api/modules.html#requireid).
 
+Relative paths resolve from the file that called `createFsRequire()`, like `require` resolves from the file it's used in. If the caller isn't a file (e.g. `node -e` or the REPL), relative paths are passed to the file-system as-is.
+
 ### fsRequire.resolve(modulePath)
 
 #### modulePath

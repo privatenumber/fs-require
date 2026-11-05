@@ -1,5 +1,5 @@
-import fs from 'fs';
 import path from 'path';
+import { execFileSync } from 'child_process';
 import { testSuite, expect } from 'manten';
 import { Volume } from 'memfs';
 import { createFsRequire } from '#fs-require';
@@ -156,10 +156,8 @@ export default testSuite(({ describe }) => {
 		});
 
 		test('Works with real fs', () => {
-			const fsRequire = createFsRequire(fs);
-
-			const testFile = fsRequire('../fixtures/test-file');
-			expect(testFile()).toBe('hello world');
+			const result = execFileSync(process.execPath, [path.join(__dirname, 'real-fs.cjs')], { encoding: 'utf8' });
+			expect(result).toBe('hello world');
 		});
 
 		test('Modules are cached', () => {

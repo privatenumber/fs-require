@@ -1,4 +1,5 @@
 import path from 'node:path';
+import vm from 'node:vm';
 import { describe, test, expect } from 'manten';
 import { createFixture } from 'fs-fixture';
 import { Volume } from 'memfs';
@@ -251,6 +252,227 @@ describe('fs-require', () => {
 		const value3 = fsRequire('/index');
 
 		expect(value2).not.toBe(value3);
+	});
+
+	// Matches Node.js: a module is cached before it runs
+	test('Circular requires get the partial exports', () => {
+		const vol = Volume.fromJSON({
+			'/a.js': 'exports.a = 1; require("./b"); exports.done = true;',
+			'/b.js': 'module.exports = { fromA: { ...require("./a") }, aLoaded: require.cache["/a.js"].loaded, children: module.children.map(child => child.id) };',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire('/a')).toStrictEqual({
+			a: 1,
+			done: true,
+		});
+		expect(fsRequire('/b')).toStrictEqual({
+			fromA: { a: 1 },
+			aLoaded: false,
+			children: ['/a.js'],
+		});
+		expect(fsRequire.cache['/a.js'].loaded).toBe(true);
+	});
+
+	// The entry path is normalized, so the cycle finds the module it started from
+	test('Circular requires through a path alias run each module once', () => {
+		let runs = 0;
+		Object.assign(globalThis, {
+			fsRequireAliasRun: () => {
+				runs += 1;
+			},
+		});
+		const vol = Volume.fromJSON({
+			'/a.js': 'globalThis.fsRequireAliasRun(); exports.a = 1; exports.fromB = require("./b");',
+			'/b.js': 'module.exports = { ...require("./a") };',
+			'/sub/index.js': '',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire('/sub/../a')).toStrictEqual({
+			a: 1,
+			fromB: { a: 1 },
+		});
+		expect(runs).toBe(1);
+	});
+
+	test('Circular requires without a caller file run each module once', () => {
+		let runs = 0;
+		Object.assign(globalThis, {
+			fsRequireRelativeRun: () => {
+				runs += 1;
+			},
+		});
+		const vol = Volume.fromJSON({
+			'./a.js': 'globalThis.fsRequireRelativeRun(); exports.a = 1; exports.fromB = require("./b"); exports.done = true;',
+			'./b.js': 'module.exports = { ...require("./a") };',
+		});
+		const createWithoutCaller = vm.runInThisContext('(create, fs) => create(fs)');
+		const fsRequire = createWithoutCaller(createFsRequire, vol);
+
+		expect(fsRequire('./a')).toStrictEqual({
+			a: 1,
+			fromB: { a: 1 },
+			done: true,
+		});
+		expect(runs).toBe(1);
+	});
+
+	// Node.js captures array methods at startup, so stubbing one that fs-require
+	// uses for module.children doesn't break loading
+	test('Cached requires work while Array.prototype.includes is stubbed', () => {
+		const vol = Volume.fromJSON({
+			'/cached.js': 'module.exports = "cached";',
+			'/index.js': `
+				require('./cached');
+				const { includes } = Array.prototype;
+				Array.prototype.includes = () => {
+					throw new Error('stubbed');
+				};
+				try {
+					module.exports = require('./cached');
+				} finally {
+					Array.prototype.includes = includes;
+				}
+			`,
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire('/index')).toBe('cached');
+	});
+
+	test('A failed load keeps its error while Array.isArray is stubbed', () => {
+		const vol = Volume.fromJSON({
+			'/stub.js': 'Array.isArray = () => { throw new Error("stubbed"); }; throw new Error("original failure");',
+			'/index.js': `
+				const { isArray } = Array;
+				let error;
+				try {
+					require('./stub');
+				} catch (caught) {
+					error = caught.message;
+				} finally {
+					Array.isArray = isArray;
+				}
+				module.exports = { error, children: module.children.length };
+			`,
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire('/index')).toStrictEqual({
+			error: 'original failure',
+			children: 0,
+		});
+	});
+
+	// Matches Node.js: a module that fails to load is removed from the cache
+	// and from its parent's children, so requiring it again retries
+	test('Failed loads are not cached', () => {
+		let attempts = 0;
+		const vol = Volume.fromJSON({
+			'/throws.js': 'globalThis.fsRequireAttempt(); throw new Error("load failed");',
+			'/unreadable.js': '',
+			'/index.js': `
+				const tryRequire = (request) => {
+					try {
+						require(request);
+					} catch {}
+				};
+				tryRequire('./throws');
+				tryRequire('./unreadable');
+				module.exports = module.children.map(child => child.id);
+			`,
+		});
+		const readFileSync = vol.readFileSync.bind(vol);
+		const mfs = Object.assign(Object.create(vol), {
+			readFileSync: (filePath: string) => {
+				if (filePath === '/unreadable.js') {
+					throw Object.assign(new Error('EACCES'), { code: 'EACCES' });
+				}
+				return readFileSync(filePath);
+			},
+		});
+		Object.assign(globalThis, {
+			fsRequireAttempt: () => {
+				attempts += 1;
+			},
+		});
+		const fsRequire = createFsRequire(mfs);
+
+		expect(fsRequire('/index')).toStrictEqual([]);
+		expect(Object.keys(fsRequire.cache)).toStrictEqual(['/index.js']);
+
+		expect(() => fsRequire('/throws')).toThrow('load failed');
+		expect(attempts).toBe(2);
+	});
+
+	// Matches Node.js, where marking the module loaded is part of loading it
+	test('A module that cannot be marked loaded is not cached', () => {
+		const vol = Volume.fromJSON({
+			'/frozen.js': 'Object.freeze(module);',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(() => fsRequire('/frozen')).toThrow(TypeError);
+		expect(() => fsRequire('/frozen')).toThrow(TypeError);
+		expect(Object.keys(fsRequire.cache)).toStrictEqual([]);
+	});
+
+	test('A module whose exports getter throws is not cached', () => {
+		let runs = 0;
+		Object.assign(globalThis, {
+			fsRequireRun: () => {
+				runs += 1;
+			},
+		});
+		const vol = Volume.fromJSON({
+			'/getter.js': 'globalThis.fsRequireRun(); Object.defineProperty(module, "exports", { get() { throw new Error("getter"); } });',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(() => fsRequire('/getter')).toThrow('getter');
+		expect(() => fsRequire('/getter')).toThrow('getter');
+		expect(runs).toBe(2);
+		expect(Object.keys(fsRequire.cache)).toStrictEqual([]);
+	});
+
+	test('Replaced or modified module.children still records children', () => {
+		const vol = Volume.fromJSON({
+			'/cached.js': '',
+			'/fails.js': 'Object.setPrototypeOf(module.parent.children, null); throw new Error("original failure");',
+			'/index.js': `
+				require('./cached');
+				module.children = {};
+				require('./cached');
+				const replaced = module.children.length;
+
+				module.children = [];
+				let error;
+				try {
+					require('./fails');
+				} catch (caught) {
+					error = caught.message;
+				}
+				module.exports = { replaced, error, children: module.children.length };
+			`,
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire('/index')).toStrictEqual({
+			replaced: 1,
+			error: 'original failure',
+			children: 0,
+		});
+	});
+
+	test('A failed load keeps its error after replacing module.parent.children', () => {
+		const vol = Volume.fromJSON({
+			'/replace.js': 'module.parent.children = {}; throw new Error("original failure");',
+			'/index.js': 'require("./replace");',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(() => fsRequire('/index')).toThrow('original failure');
 	});
 
 	test('Error stack', () => {

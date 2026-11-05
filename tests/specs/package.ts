@@ -83,4 +83,30 @@ export const packageSpec = (nodePath: string) => describe('package', () => {
 		const { stdout } = await spawn(nodePath, [fixture.getPath('main.cjs')]);
 		expect(stdout).toBe('b/file');
 	});
+
+	// fs-require is a symlink here, as in pnpm, `npm link`, and file: installs,
+	// so its own location can't see the project's dependencies
+	test('bare specifiers resolve from the caller', async () => {
+		await using fixture = await createFixture({
+			'index.cjs': `
+				const fs = require('fs');
+				const { createFsRequire } = require('fs-require');
+				process.stdout.write(createFsRequire(fs)('./virtual'));
+			`,
+			'index.mjs': `
+				import fs from 'fs';
+				import { createFsRequire } from 'fs-require';
+				process.stdout.write(createFsRequire(fs)('./virtual'));
+			`,
+			'virtual.js': 'module.exports = require("dependency");',
+			'node_modules/dependency/index.js': 'module.exports = "dependency";',
+			...installFsRequire(),
+		});
+
+		const cjs = await spawn(nodePath, [fixture.getPath('index.cjs')]);
+		expect(cjs.stdout).toBe('dependency');
+
+		const esm = await spawn(nodePath, [fixture.getPath('index.mjs')]);
+		expect(esm.stdout).toBe('dependency');
+	});
 });

@@ -1,13 +1,13 @@
 import path from 'path';
 import {
-	FileSystemLike,
+	type FileSystemLike,
 	implicitExtensions,
-	loaderTypes,
-} from '../types';
+	type loaderTypes,
+} from '../types.ts';
 import {
 	hasValidExtensionPattern,
 	isDirectory,
-} from '.';
+} from './index.ts';
 
 type Resolved = {
 	extension: (typeof loaderTypes)[number];

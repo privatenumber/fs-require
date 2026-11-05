@@ -4,6 +4,10 @@ allowBuilds:
 permissions:
   clean-pkg-json:
     skills: true
+  fs-fixture:
+    skills: true
+  manten:
+    skills: true
 
 skills:
   dirs:

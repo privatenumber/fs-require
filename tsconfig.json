@@ -5,10 +5,11 @@
 		"types": [
 			"node",
 		],
-		"isolatedModules": true,
+		"allowImportingTsExtensions": true,
 		"erasableSyntaxOnly": true,
 		"strict": true,
 		"noEmit": true,
+		"verbatimModuleSyntax": true,
 		"skipLibCheck": true,
 	},
 	"include": [

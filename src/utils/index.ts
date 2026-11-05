@@ -1,4 +1,4 @@
-import { FileSystemLike, implicitExtensions } from '../types';
+import { type FileSystemLike, implicitExtensions } from '../types.ts';
 
 export const hasValidExtensionPattern = new RegExp(
 	`(${

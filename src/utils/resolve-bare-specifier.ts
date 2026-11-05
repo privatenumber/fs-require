@@ -1,4 +1,4 @@
-import { Options, FileSystemLike } from '../types';
+import type { Options, FileSystemLike } from '../types.ts';
 
 const isFilePathPattern = /^[./]/;
 export const isBareSpecifier = (modulePath: string) => !isFilePathPattern.test(modulePath);

@@ -19,6 +19,7 @@
 	"files": [
 		"dist"
 	],
+	"type": "module",
 	"main": "./dist/index.cjs",
 	"module": "./dist/index.mjs",
 	"types": "./dist/index.d.cts",
@@ -35,7 +36,6 @@
 	"imports": {
 		"#fs-require": {
 			"types": "./src/index.ts",
-			"development": "./src/index.ts",
 			"default": "./dist/index.cjs"
 		}
 	},
@@ -44,8 +44,7 @@
 		"lint": "eslint --cache .",
 		"type-check": "tsc",
 		"build": "pkgroll --target=node12.22.12 --minify",
-		"test": "tsx tests",
-		"dev": "tsx watch --conditions=development tests",
+		"test": "pnpm build && node tests/index.ts",
 		"prepack": "pnpm build && clean-pkg-json"
 	},
 	"devDependencies": {
@@ -53,10 +52,12 @@
 		"@types/node": "^26.6.6",
 		"clean-pkg-json": "^2.1.0",
 		"eslint": "^8.28.0",
-		"manten": "^0.6.1",
+		"fs-fixture": "^2.16.0",
+		"get-node": "^15.0.4",
+		"manten": "^2.0.2",
 		"memfs": "^4.80.0",
+		"nano-spawn": "^2.1.0",
 		"pkgroll": "^2.29.0",
-		"tsx": "^3.12.1",
 		"typescript": "^6.0.3"
 	},
 	"eslintConfig": {

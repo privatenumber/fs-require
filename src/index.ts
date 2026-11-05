@@ -1,16 +1,16 @@
 import vm from 'vm';
 import path from 'path';
 import Module from 'module';
-import {
+import type {
 	Options,
 	FileSystemLike,
 	fsRequire,
 	Loaders,
 	ModuleCache,
-} from './types';
-import { isBareSpecifier, resolveBareSpecifier } from './utils/resolve-bare-specifier';
-import { resolveModule } from './utils/resolve-module';
-import { getCallerFilename } from './utils/get-caller-filename';
+} from './types.ts';
+import { isBareSpecifier, resolveBareSpecifier } from './utils/resolve-bare-specifier.ts';
+import { resolveModule } from './utils/resolve-module.ts';
+import { getCallerFilename } from './utils/get-caller-filename.ts';
 
 export type {
 	FileSystemLike as FileSystem,

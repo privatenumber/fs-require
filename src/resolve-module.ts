@@ -1,58 +1,36 @@
 import path from 'path';
-import {
-	type FileSystemLike,
-	type LoaderExtension,
-	implicitExtensions,
-} from './types.ts';
+import type { FileSystemLike } from './types.ts';
 
-type Resolved = {
-	extension: LoaderExtension;
-	filePath: string;
-};
+const implicitExtensions = ['.js', '.json'];
 
-const implicitExtensionPattern = new RegExp(
-	`(${
-		implicitExtensions
-			.map(extension => extension.replace(/\./g, String.raw`\$&`))
-			.join('|')
-	})$`,
-);
-
+/**
+ * Resolves a relative or absolute path like require(): an exact file,
+ * an implicit extension, or a directory's index file
+ */
 export const resolveModule = (
 	mfs: FileSystemLike,
 	modulePath: string,
 	parentFilename?: string,
-): Resolved | null => {
+): string | undefined => {
 	if (!path.isAbsolute(modulePath) && parentFilename) {
 		modulePath = path.resolve(path.dirname(parentFilename), modulePath);
 	}
 
-	// Exact match
 	if (mfs.existsSync(modulePath)) {
 		if (mfs.lstatSync(modulePath).isDirectory()) {
 			return (
 				resolveModule(mfs, path.join(modulePath, 'index.js'))
-				|| resolveModule(mfs, path.join(modulePath, 'index.json'))
+				?? resolveModule(mfs, path.join(modulePath, 'index.json'))
 			);
 		}
 
-		const extension = (modulePath.match(implicitExtensionPattern)?.[0] ?? '') as LoaderExtension;
-		return {
-			extension,
-			filePath: modulePath,
-		};
+		return modulePath;
 	}
 
-	// Try extensions
 	for (const extension of implicitExtensions) {
-		const filePathWithExtension = modulePath + extension;
-		if (mfs.existsSync(filePathWithExtension)) {
-			return {
-				extension,
-				filePath: filePathWithExtension,
-			};
+		const filePath = modulePath + extension;
+		if (mfs.existsSync(filePath)) {
+			return filePath;
 		}
 	}
-
-	return null;
 };

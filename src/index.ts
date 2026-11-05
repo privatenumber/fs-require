@@ -45,7 +45,7 @@ loaders[''] = (newModule, sourceCode, makeRequire, filename, id) => {
 		newModule.exports,
 		makeRequire(newModule),
 		newModule,
-		path.basename(filename),
+		filename,
 		path.dirname(filename),
 	);
 };

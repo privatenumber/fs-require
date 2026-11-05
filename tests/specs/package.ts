@@ -22,7 +22,7 @@ export const packageSpec = (nodePath: string) => describe('package', () => {
 				process.stdout.write(JSON.stringify({
 					json: result.json,
 					builtin: result.builtin,
-					filename: result.filename,
+					filename: result.filename === require('path').join(__dirname, 'virtual/index.js'),
 					sharesFs: result.fs === fs,
 				}));
 			`,
@@ -42,7 +42,7 @@ export const packageSpec = (nodePath: string) => describe('package', () => {
 		expect(JSON.parse(stdout)).toStrictEqual({
 			json: { value: 1 },
 			builtin: 'function',
-			filename: 'index.js',
+			filename: true,
 			sharesFs: true,
 		});
 	});

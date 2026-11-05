@@ -25,5 +25,5 @@ A temporary change that made `getCallerFilename()` return `undefined` failed the
 
 ## Re-evaluate when
 
-- The floor is raised. Then update the build target, the oldest entry in `tests/index.ts`, and the two lint overrides.
+- The floor is raised. Then update `engines.node`, the build target, the oldest entry in `tests/index.ts`, and the two lint overrides.
 - esbuild adds an option to strip `node:` for old targets, which would make the `n/prefer-node-protocol` override unnecessary.

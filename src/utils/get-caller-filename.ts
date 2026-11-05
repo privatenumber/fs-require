@@ -10,8 +10,7 @@ import { fileURLToPath } from 'url';
  * See notes/fs-require/caller-relative-resolution.md
  */
 export const getCallerFilename = (
-	// eslint-disable-next-line @typescript-eslint/ban-types
-	function_: Function,
+	function_: (...arguments_: never[]) => unknown,
 ) => {
 	const { prepareStackTrace, stackTraceLimit } = Error;
 	let fileName: string | null | undefined;

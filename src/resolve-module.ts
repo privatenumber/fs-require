@@ -1,38 +1,42 @@
 import path from 'path';
 import {
-	FileSystemLike,
+	type FileSystemLike,
+	type LoaderExtension,
 	implicitExtensions,
-	loaderTypes,
-} from '../types';
-import {
-	hasValidExtensionPattern,
-	isDirectory,
-} from '.';
+} from './types.ts';
 
 type Resolved = {
-	extension: (typeof loaderTypes)[number];
+	extension: LoaderExtension;
 	filePath: string;
-}
+};
 
-function resolveModuleSafe(
+const implicitExtensionPattern = new RegExp(
+	`(${
+		implicitExtensions
+			.map(extension => extension.replace(/\./g, String.raw`\$&`))
+			.join('|')
+	})$`,
+);
+
+const resolveModuleSafe = (
 	mfs: FileSystemLike,
 	modulePath: string,
 	parentFilename?: string,
-): Resolved | null {
+): Resolved | null => {
 	if (!path.isAbsolute(modulePath) && parentFilename) {
 		modulePath = path.resolve(path.dirname(parentFilename), modulePath);
 	}
 
 	// Exact match
 	if (mfs.existsSync(modulePath)) {
-		if (isDirectory(mfs, modulePath)) {
+		if (mfs.lstatSync(modulePath).isDirectory()) {
 			return (
-				resolveModuleSafe(mfs, path.join(modulePath, 'index.js'), parentFilename)
-				|| resolveModuleSafe(mfs, path.join(modulePath, 'index.json'), parentFilename)
+				resolveModuleSafe(mfs, path.join(modulePath, 'index.js'))
+				|| resolveModuleSafe(mfs, path.join(modulePath, 'index.json'))
 			);
 		}
 
-		const extension = (modulePath.match(hasValidExtensionPattern)?.[0] ?? '') as Resolved['extension'];
+		const extension = (modulePath.match(implicitExtensionPattern)?.[0] ?? '') as LoaderExtension;
 		return {
 			extension,
 			filePath: modulePath,
@@ -51,13 +55,13 @@ function resolveModuleSafe(
 	}
 
 	return null;
-}
+};
 
-export function resolveModule(
+export const resolveModule = (
 	mfs: FileSystemLike,
 	modulePath: string,
 	parentFilename?: string,
-) {
+) => {
 	const resolved = resolveModuleSafe(mfs, modulePath, parentFilename);
 
 	if (!resolved) {
@@ -65,4 +69,4 @@ export function resolveModule(
 	}
 
 	return resolved;
-}
+};

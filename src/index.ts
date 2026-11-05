@@ -1,26 +1,24 @@
 import vm from 'vm';
 import path from 'path';
 import Module from 'module';
-import {
+import type {
 	Options,
 	FileSystemLike,
 	fsRequire,
 	Loaders,
 	ModuleCache,
-} from './types';
-import { isBareSpecifier, resolveBareSpecifier } from './utils/resolve-bare-specifier';
-import { resolveModule } from './utils/resolve-module';
-import { getCallerFilename } from './utils/get-caller-filename';
+} from './types.ts';
+import { isBareSpecifier, resolveBareSpecifier } from './resolve-bare-specifier.ts';
+import { resolveModule } from './resolve-module.ts';
+import { getCallerFilename } from './utils/get-caller-filename.ts';
 
 export type {
 	FileSystemLike as FileSystem,
 	fsRequire,
 };
 
-const loaders: Loaders = { /*
-	loaderes are organized like this to keep them anonymous
-	in the call stack, like how the native loders behave.
-*/
+// Loaders are assigned after creation to keep them anonymous in stack traces
+const loaders: Loaders = {
 	'': undefined,
 	'.js': undefined,
 	'.json': undefined,
@@ -29,26 +27,27 @@ const loaders: Loaders = { /*
 /**
  * Extensionless JS files
  */
-loaders[''] = function (newModule, sourceCode, makeRequire, filename, id) {
+// eslint-disable-next-line unicorn/no-immediate-mutation -- Keeps the function anonymous
+loaders[''] = (newModule, sourceCode, makeRequire, filename, id) => {
 	const moduleWrappedSourceCode = Module.wrap(sourceCode);
 
-	// Reference: https://github.com/nodejs/node/blob/master/lib/internal/modules/cjs/loader.js#L1028
+	// Reference: https://github.com/nodejs/node/blob/v26.13.0/lib/internal/modules/cjs/loader.js#L1954-L1968
 	vm.runInThisContext(moduleWrappedSourceCode, {
 		filename: `fs-require://${id}${filename}`,
 		lineOffset: 0,
 		displayErrors: true,
 	})(
 		newModule.exports,
-		makeRequire!(newModule),
+		makeRequire(newModule),
 		newModule,
-		path.basename(filename!),
-		path.dirname(filename!),
+		path.basename(filename),
+		path.dirname(filename),
 	);
 };
 
 loaders['.js'] = loaders[''];
 
-loaders['.json'] = function (newModule, sourceCode) {
+loaders['.json'] = (newModule, sourceCode) => {
 	newModule.exports = JSON.parse(sourceCode);
 };
 
@@ -62,10 +61,10 @@ export const createFsRequire = (
 	const fsRequireId = idCounter;
 	const moduleCache: ModuleCache = Object.create(null);
 
-	function makeRequireFunction(
+	const makeRequireFunction = (
 		parentModule?: Module,
 		parentFilename = parentModule?.filename,
-	): fsRequire {
+	): fsRequire => {
 		const resolve = (modulePath: string) => {
 			if (isBareSpecifier(modulePath)) {
 				return modulePath;
@@ -108,7 +107,7 @@ export const createFsRequire = (
 		require.cache = moduleCache;
 
 		return require;
-	}
+	};
 
 	// Relative paths passed to the returned function resolve from the caller's file
 	return makeRequireFunction(undefined, getCallerFilename(createFsRequire));

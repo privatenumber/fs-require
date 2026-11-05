@@ -1,4 +1,4 @@
-import { Options, FileSystemLike } from '../types';
+import type { Options, FileSystemLike } from './types.ts';
 
 const isFilePathPattern = /^[./]/;
 export const isBareSpecifier = (modulePath: string) => !isFilePathPattern.test(modulePath);
@@ -10,11 +10,11 @@ const parseBareSpecifier = (
 
 const realRequire = require;
 
-export function resolveBareSpecifier(
+export const resolveBareSpecifier = (
 	mfs: FileSystemLike,
 	modulePath: string,
 	options?: Options,
-) {
+) => {
 	const [moduleName, moduleSubpath] = parseBareSpecifier(modulePath) ?? [];
 
 	if (moduleName === 'fs') {
@@ -37,4 +37,4 @@ export function resolveBareSpecifier(
 	}
 
 	return realRequire(modulePath);
-}
+};

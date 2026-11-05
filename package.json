@@ -19,6 +19,7 @@
 	"files": [
 		"dist"
 	],
+	"type": "module",
 	"main": "./dist/index.cjs",
 	"module": "./dist/index.mjs",
 	"types": "./dist/index.d.cts",
@@ -35,39 +36,37 @@
 	"imports": {
 		"#fs-require": {
 			"types": "./src/index.ts",
-			"development": "./src/index.ts",
 			"default": "./dist/index.cjs"
 		}
 	},
+	"packageManager": "pnpm@12.16.1",
 	"scripts": {
-		"prepare": "simple-git-hooks",
-		"lint": "eslint --cache .",
-		"type-check": "tsc --noEmit",
+		"lint": "lintroll --cache --git",
+		"type-check": "tsc",
 		"build": "pkgroll --target=node12.22.12 --minify",
-		"test": "tsx tests",
-		"dev": "tsx watch --conditions=development tests",
+		"test": "pnpm build && node tests/index.ts",
 		"prepack": "pnpm build && clean-pkg-json"
 	},
-	"simple-git-hooks": {
-		"pre-commit": "pnpm lint-staged"
-	},
-	"lint-staged": {
-		"*.{js,ts}": "pnpm lint"
+	"engines": {
+		"node": ">=12.22"
 	},
 	"devDependencies": {
-		"@pvtnbr/eslint-config": "^0.33.0",
-		"@types/node": "^18.11.9",
-		"clean-pkg-json": "^1.2.0",
-		"eslint": "^8.28.0",
-		"lint-staged": "^13.0.4",
-		"manten": "^0.6.1",
-		"memfs": "^3.4.12",
-		"pkgroll": "^1.7.0",
-		"simple-git-hooks": "^2.8.1",
-		"tsx": "^3.12.1",
-		"typescript": "^4.9.3"
+		"@types/node": "^26.6.6",
+		"clean-pkg-json": "^2.1.0",
+		"fs-fixture": "^2.16.0",
+		"get-node": "^15.0.4",
+		"lintroll": "^1.34.1",
+		"manten": "^2.0.2",
+		"memfs": "^4.80.0",
+		"nano-spawn": "^2.1.0",
+		"pkgroll": "^2.29.0",
+		"typescript": "^6.0.3"
 	},
-	"eslintConfig": {
-		"extends": "@pvtnbr/eslint-config"
+	"devEngines": {
+		"runtime": {
+			"name": "node",
+			"version": "26.13.0",
+			"onFail": "download"
+		}
 	}
 }

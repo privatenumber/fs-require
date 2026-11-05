@@ -1,5 +1,4 @@
 import path from 'path';
-import Module from 'module';
 import {
 	FileSystemLike,
 	implicitExtensions,
@@ -18,19 +17,18 @@ type Resolved = {
 function resolveModuleSafe(
 	mfs: FileSystemLike,
 	modulePath: string,
-	parentModule?: Module | null,
+	parentFilename?: string,
 ): Resolved | null {
-	// Absolute path
-	if (!path.isAbsolute(modulePath) && parentModule) {
-		modulePath = path.resolve(path.dirname(parentModule.filename), modulePath);
+	if (!path.isAbsolute(modulePath) && parentFilename) {
+		modulePath = path.resolve(path.dirname(parentFilename), modulePath);
 	}
 
 	// Exact match
 	if (mfs.existsSync(modulePath)) {
 		if (isDirectory(mfs, modulePath)) {
 			return (
-				resolveModuleSafe(mfs, path.join(modulePath, 'index.js'), parentModule)
-				|| resolveModuleSafe(mfs, path.join(modulePath, 'index.json'), parentModule)
+				resolveModuleSafe(mfs, path.join(modulePath, 'index.js'), parentFilename)
+				|| resolveModuleSafe(mfs, path.join(modulePath, 'index.json'), parentFilename)
 			);
 		}
 
@@ -58,9 +56,9 @@ function resolveModuleSafe(
 export function resolveModule(
 	mfs: FileSystemLike,
 	modulePath: string,
-	parentModule?: Module | null,
+	parentFilename?: string,
 ) {
-	const resolved = resolveModuleSafe(mfs, modulePath, parentModule);
+	const resolved = resolveModuleSafe(mfs, modulePath, parentFilename);
 
 	if (!resolved) {
 		throw new Error(`Cannot find module '${modulePath}'`);

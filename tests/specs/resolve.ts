@@ -132,7 +132,8 @@ describe('resolve', () => {
 
 	describe('resolve package', () => {
 		// fsRequire() reads absolute paths from the file-system, so a package's
-		// resolved path wouldn't load it. The specifier does
+		// resolved path would be missing there, or load as a separate instance.
+		// The specifier loads the package through Node.js
 		test('returns the specifier, which fsRequire() loads', () => {
 			const vol = Volume.fromJSON({});
 			const fsRequire = createFsRequire(vol);

@@ -40,7 +40,6 @@
 		}
 	},
 	"scripts": {
-		"prepare": "simple-git-hooks",
 		"lint": "eslint --cache .",
 		"type-check": "tsc --noEmit",
 		"build": "pkgroll --target=node12.22.12 --minify",
@@ -48,22 +47,14 @@
 		"dev": "tsx watch --conditions=development tests",
 		"prepack": "pnpm build && clean-pkg-json"
 	},
-	"simple-git-hooks": {
-		"pre-commit": "pnpm lint-staged"
-	},
-	"lint-staged": {
-		"*.{js,ts}": "pnpm lint"
-	},
 	"devDependencies": {
 		"@pvtnbr/eslint-config": "^0.33.0",
 		"@types/node": "^18.11.9",
 		"clean-pkg-json": "^1.2.0",
 		"eslint": "^8.28.0",
-		"lint-staged": "^13.0.4",
 		"manten": "^0.6.1",
 		"memfs": "^3.4.12",
 		"pkgroll": "^1.7.0",
-		"simple-git-hooks": "^2.8.1",
 		"tsx": "^3.12.1",
 		"typescript": "^4.9.3"
 	},

@@ -1,6 +1,7 @@
 import { describe, test, expect } from 'manten';
 import spawn from 'nano-spawn';
-import { createProject } from '../utils/fixture.ts';
+import { createFixture } from 'fs-fixture';
+import { installFsRequire } from '../utils/fixture.ts';
 
 /**
  * Loads the built package through package.json#exports in a child process,
@@ -11,7 +12,7 @@ import { createProject } from '../utils/fixture.ts';
  */
 export const packageSpec = (nodePath: string) => describe('package', () => {
 	test('require() entry point', async () => {
-		await using fixture = await createProject({
+		await using fixture = await createFixture({
 			'index.cjs': `
 				const fs = require('fs');
 				const { createFsRequire } = require('fs-require');
@@ -34,6 +35,7 @@ export const packageSpec = (nodePath: string) => describe('package', () => {
 				};
 			`,
 			'virtual/data.json': '{"value":1}',
+			...installFsRequire(),
 		});
 
 		const { stdout } = await spawn(nodePath, [fixture.getPath('index.cjs')]);
@@ -46,7 +48,7 @@ export const packageSpec = (nodePath: string) => describe('package', () => {
 	});
 
 	test('import entry point', async () => {
-		await using fixture = await createProject({
+		await using fixture = await createFixture({
 			'index.mjs': `
 				import fs from 'fs';
 				import { createFsRequire } from 'fs-require';
@@ -54,6 +56,7 @@ export const packageSpec = (nodePath: string) => describe('package', () => {
 				process.stdout.write(createFsRequire(fs)('./file'));
 			`,
 			'file.js': 'module.exports = "esm caller";',
+			...installFsRequire(),
 		});
 
 		const { stdout } = await spawn(nodePath, [fixture.getPath('index.mjs')]);
@@ -62,7 +65,7 @@ export const packageSpec = (nodePath: string) => describe('package', () => {
 
 	// https://github.com/privatenumber/fs-require/issues/10
 	test('relative paths resolve from the caller, not the first importer', async () => {
-		await using fixture = await createProject({
+		await using fixture = await createFixture({
 			'a/index.cjs': 'require("fs-require");',
 			'b/index.cjs': `
 				const fs = require('fs');
@@ -74,6 +77,7 @@ export const packageSpec = (nodePath: string) => describe('package', () => {
 				require('./a/index.cjs');
 				process.stdout.write(require('./b/index.cjs'));
 			`,
+			...installFsRequire(),
 		});
 
 		const { stdout } = await spawn(nodePath, [fixture.getPath('main.cjs')]);

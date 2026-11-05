@@ -3,6 +3,23 @@ import type { FileSystemLike } from './types.ts';
 
 const implicitExtensions = ['.js', '.json'];
 
+const trailingSeparatorPattern = path.sep === '\\' ? /[/\\]+$/ : /\/+$/;
+
+/**
+ * Like path.resolve(), but a relative base stays relative, so the file-system
+ * resolves the result from its own working directory. A relative result keeps
+ * a ./ prefix, so passing it back to fsRequire() isn't read as a package name
+ */
+const resolvePath = (base: string, request: string) => {
+	if (path.isAbsolute(base) || path.isAbsolute(request)) {
+		return path.resolve(base, request);
+	}
+
+	// path.join() keeps a trailing separator that path.resolve() removes
+	const joined = path.join(base, request).replace(trailingSeparatorPattern, '');
+	return joined.startsWith('.') ? joined : `.${path.sep}${joined}`;
+};
+
 const isFile = (mfs: FileSystemLike, filePath: string) => (
 	mfs.existsSync(filePath) && !mfs.lstatSync(filePath).isDirectory()
 );
@@ -40,9 +57,11 @@ const createInvalidPackageConfigError = (
 	},
 );
 
-const parsePackageConfig = (source: string, packagePath: string): unknown => {
+// Like Node.js, a read failure is also an invalid package config
+// Reference: https://github.com/nodejs/node/blob/v26.13.0/src/node_modules.cc#L250-L263
+const parsePackageConfig = (mfs: FileSystemLike, packagePath: string): unknown => {
 	try {
-		return JSON.parse(source);
+		return JSON.parse(mfs.readFileSync(packagePath).toString().replace(/^\uFEFF/, ''));
 	} catch (error) {
 		throw createInvalidPackageConfigError(packagePath, error);
 	}
@@ -53,8 +72,7 @@ const parsePackageConfig = (source: string, packagePath: string): unknown => {
 // Unlike Node.js, fields other than main, such as name and type, aren't validated
 // Reference: https://github.com/nodejs/node/blob/v26.13.0/src/node_modules.cc#L128-L130
 const readPackageConfig = (mfs: FileSystemLike, packagePath: string) => {
-	const source = mfs.readFileSync(packagePath).toString().replace(/^\uFEFF/, '');
-	const config = parsePackageConfig(source, packagePath);
+	const config = parsePackageConfig(mfs, packagePath);
 	if (typeof config !== 'object' || config === null || Array.isArray(config)) {
 		throw createInvalidPackageConfigError(packagePath);
 	}
@@ -70,9 +88,7 @@ const loadAsDirectory = (mfs: FileSystemLike, directory: string): string | undef
 	if (isFile(mfs, packagePath)) {
 		const { main } = readPackageConfig(mfs, packagePath);
 		if (typeof main === 'string' && main) {
-			// Joined, not resolved, so a relative directory stays relative to the
-			// file-system's working directory
-			const mainPath = path.isAbsolute(main) ? path.normalize(main) : path.join(directory, main);
+			const mainPath = resolvePath(directory, main);
 			return loadAsFile(mfs, mainPath) ?? loadIndex(mfs, mainPath) ?? loadIndex(mfs, directory);
 		}
 	}
@@ -92,19 +108,10 @@ export const resolveModule = (
 ): string | undefined => {
 	const isDirectoryRequest = modulePath !== '' && directoryRequestPattern.test(modulePath);
 
-	// Like Node.js, absolute paths are normalized, so aliases such as /a/../b
-	// share one cache entry
-	if (path.isAbsolute(modulePath)) {
-		modulePath = path.resolve(modulePath);
-	} else {
-		// Without a caller file, the entry and every module it loads have relative
-		// filenames. Joining keeps their requests relative, normalized so aliases
-		// such as ./a and a share one cache entry
-		const parentDirectory = parentFilename ? path.dirname(parentFilename) : '';
-		modulePath = path.isAbsolute(parentDirectory)
-			? path.resolve(parentDirectory, modulePath)
-			: path.join(parentDirectory, modulePath);
-	}
+	// Like Node.js, paths are normalized, so aliases such as /a/../b share one
+	// cache entry. Without a caller file, the entry and the modules it loads have
+	// relative filenames, which stay relative
+	modulePath = resolvePath(parentFilename ? path.dirname(parentFilename) : '', modulePath);
 
 	if (!isDirectoryRequest) {
 		const file = loadAsFile(mfs, modulePath);

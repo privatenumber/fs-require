@@ -273,6 +273,40 @@ describe('resolve', () => {
 		}
 	});
 
+	// Node.js normalizes main with path.resolve(), which removes a trailing slash
+	test('package main with a trailing slash', () => {
+		const vol = Volume.fromJSON({
+			'/pkg/package.json': '{"main":"lib/"}',
+			'/pkg/lib.js': '',
+			'/pkg/lib/index.js': '',
+		});
+		const fsRequire = createFsRequire(vol);
+
+		expect(fsRequire.resolve('/pkg')).toBe('/pkg/lib.js');
+	});
+
+	test('unreadable package.json throws ERR_INVALID_PACKAGE_CONFIG', () => {
+		const vol = Volume.fromJSON({
+			'/pkg/package.json': '{}',
+			'/pkg/index.js': '',
+		});
+		const mfs = Object.assign(Object.create(vol), {
+			existsSync: vol.existsSync.bind(vol),
+			lstatSync: vol.lstatSync.bind(vol),
+			readFileSync: (filePath: string) => {
+				if (filePath === '/pkg/package.json') {
+					throw Object.assign(new Error('EACCES'), { code: 'EACCES' });
+				}
+				return vol.readFileSync(filePath);
+			},
+		});
+		const fsRequire = createFsRequire(mfs);
+
+		expect(() => fsRequire.resolve('/pkg')).toThrow(expect.objectContaining({
+			code: 'ERR_INVALID_PACKAGE_CONFIG',
+		}));
+	});
+
 	// Without a caller file, relative requests stay relative to the file-system's
 	// own working directory, so a package's main must not become absolute
 	test('relative package main without a caller file', () => {
@@ -283,8 +317,12 @@ describe('resolve', () => {
 		const createWithoutCaller = vm.runInThisContext('(create, fs) => create(fs)');
 		const fsRequire = createWithoutCaller(createFsRequire, vol);
 
-		expect(fsRequire.resolve('./pkg')).toBe(path.join('pkg', 'entry.js'));
+		const resolved = fsRequire.resolve('./pkg');
+		expect(resolved).toBe(`.${path.sep}${path.join('pkg', 'entry.js')}`);
 		expect(fsRequire('./pkg')).toBe(fsRequire('./pkg/entry.js'));
+
+		// A relative result keeps its ./ prefix, so it isn't read as a package name
+		expect(fsRequire(resolved)).toBe(fsRequire('./pkg'));
 	});
 
 	// A module loaded from a relative path has a relative filename, so its own
@@ -297,7 +335,7 @@ describe('resolve', () => {
 		const createWithoutCaller = vm.runInThisContext('(create, fs) => create(fs)');
 		const fsRequire = createWithoutCaller(createFsRequire, vol);
 
-		expect(fsRequire('./dir/a')).toBe(path.join('dir', 'b.js'));
+		expect(fsRequire('./dir/a')).toBe(`.${path.sep}${path.join('dir', 'b.js')}`);
 	});
 
 	// The resolved path is the cache key, so aliases of one file must match

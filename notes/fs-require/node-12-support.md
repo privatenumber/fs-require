@@ -1,6 +1,6 @@
 # Node.js 12.22 support
 
-The published build supports Node.js 12.22 and newer. `pkgroll --target=node12.22.12` in `package.json#scripts.build` sets the floor, and the test suite runs the built package on Node.js 12.22.12 and every later LTS major in CI. Development and the rest of the toolchain use the version in `package.json#devEngines.runtime`.
+The published build supports Node.js 12.22 and newer, as `package.json#engines` declares. `pkgroll --target=node12.22.12` in `package.json#scripts.build` builds for that floor, and the test suite runs the built package on Node.js 12.22.12 and every later LTS major in CI. Development and the rest of the toolchain use the version in `package.json#devEngines.runtime`.
 
 Last verified 2026-11-05 with pkgroll 2.29.0 (esbuild 0.28.2) on Node.js v26.13.0.
 

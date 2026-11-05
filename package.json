@@ -47,6 +47,9 @@
 		"test": "pnpm build && node tests/index.ts",
 		"prepack": "pnpm build && clean-pkg-json"
 	},
+	"engines": {
+		"node": ">=12.22"
+	},
 	"devDependencies": {
 		"@types/node": "^26.6.6",
 		"clean-pkg-json": "^2.1.0",

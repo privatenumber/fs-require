@@ -24,11 +24,7 @@ const isFile = (mfs: FileSystemLike, filePath: string) => (
 	mfs.existsSync(filePath) && !mfs.lstatSync(filePath).isDirectory()
 );
 
-const loadAsFile = (mfs: FileSystemLike, filePath: string): string | undefined => {
-	if (isFile(mfs, filePath)) {
-		return filePath;
-	}
-
+const loadWithExtension = (mfs: FileSystemLike, filePath: string): string | undefined => {
 	for (const extension of implicitExtensions) {
 		const candidate = filePath + extension;
 		if (isFile(mfs, candidate)) {
@@ -37,9 +33,13 @@ const loadAsFile = (mfs: FileSystemLike, filePath: string): string | undefined =
 	}
 };
 
+const loadAsFile = (mfs: FileSystemLike, filePath: string): string | undefined => (
+	isFile(mfs, filePath) ? filePath : loadWithExtension(mfs, filePath)
+);
+
 const loadIndex = (mfs: FileSystemLike, directory: string): string | undefined => {
 	for (const extension of implicitExtensions) {
-		const candidate = path.join(directory, `index${extension}`);
+		const candidate = resolvePath(directory, `index${extension}`);
 		if (isFile(mfs, candidate)) {
 			return candidate;
 		}
@@ -67,9 +67,10 @@ const parsePackageConfig = (mfs: FileSystemLike, packagePath: string): unknown =
 	}
 };
 
-// Like Node.js, a leading byte order mark is ignored, and malformed JSON or a
-// configuration that isn't an object throws ERR_INVALID_PACKAGE_CONFIG.
-// Unlike Node.js, fields other than main, such as name and type, aren't validated
+// A leading byte order mark is ignored, and JSON that JSON.parse() rejects, or
+// a configuration that isn't an object, throws ERR_INVALID_PACKAGE_CONFIG.
+// See notes/fs-require/module-resolution.md for edge cases where Node.js's
+// own package.json reader differs
 // Reference: https://github.com/nodejs/node/blob/v26.13.0/src/node_modules.cc#L128-L130
 const readPackageConfig = (mfs: FileSystemLike, packagePath: string) => {
 	const config = parsePackageConfig(mfs, packagePath);
@@ -109,18 +110,29 @@ export const resolveModule = (
 	const isDirectoryRequest = modulePath !== '' && directoryRequestPattern.test(modulePath);
 
 	// Like Node.js, paths are normalized, so aliases such as /a/../b share one
-	// cache entry. Without a caller file, the entry and the modules it loads have
-	// relative filenames, which stay relative
-	modulePath = resolvePath(parentFilename ? path.dirname(parentFilename) : '', modulePath);
+	// cache entry. An absolute request ignores the parent, so a drive-less
+	// Windows path uses the current drive. Without a caller file, the entry and
+	// the modules it loads have relative filenames, which stay relative
+	modulePath = path.isAbsolute(modulePath)
+		? path.resolve(modulePath)
+		: resolvePath(parentFilename ? path.dirname(parentFilename) : '', modulePath);
+
+	// Checked once, because resolution runs on every require(), even when cached
+	const exists = mfs.existsSync(modulePath);
+	const isDirectory = exists && mfs.lstatSync(modulePath).isDirectory();
 
 	if (!isDirectoryRequest) {
-		const file = loadAsFile(mfs, modulePath);
+		if (exists && !isDirectory) {
+			return modulePath;
+		}
+
+		const file = loadWithExtension(mfs, modulePath);
 		if (file) {
 			return file;
 		}
 	}
 
-	if (mfs.existsSync(modulePath) && mfs.lstatSync(modulePath).isDirectory()) {
+	if (isDirectory) {
 		return loadAsDirectory(mfs, modulePath);
 	}
 };

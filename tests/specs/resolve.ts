@@ -325,6 +325,19 @@ describe('resolve', () => {
 		expect(fsRequire(resolved)).toBe(fsRequire('./pkg'));
 	});
 
+	test('relative directory index without a caller file', () => {
+		const vol = Volume.fromJSON({
+			'./pkg/index.js': 'module.exports = {};',
+		});
+		const createWithoutCaller = vm.runInThisContext('(create, fs) => create(fs)');
+		const fsRequire = createWithoutCaller(createFsRequire, vol);
+
+		const resolved = fsRequire.resolve('./pkg');
+		expect(resolved).toBe(`.${path.sep}${path.join('pkg', 'index.js')}`);
+		expect(fsRequire(resolved)).toBe(fsRequire('./pkg/index.js'));
+		expect(fsRequire('./pkg')).toBe(fsRequire('./pkg/index.js'));
+	});
+
 	// A module loaded from a relative path has a relative filename, so its own
 	// relative requires must stay in the same relative namespace
 	test('relative requests from a relative parent stay relative', () => {

@@ -1,3 +1,5 @@
+import path from 'node:path';
+import vm from 'node:vm';
 import { describe, test, expect } from 'manten';
 import { Volume } from 'memfs';
 import { createFsRequire } from '#fs-require';
@@ -163,13 +165,16 @@ describe('resolve', () => {
 			expect(() => fsRequire.resolve('/a')).toThrow('Cannot find module \'/a\'');
 		});
 
-		test('invalid package json propagates a parse error', () => {
+		test('invalid package json throws ERR_INVALID_PACKAGE_CONFIG', () => {
 			const vol = Volume.fromJSON({
 				'/a/package.json': '{',
 				'/a/index.js': '',
 			});
 			const fsRequire = createFsRequire(vol);
-			expect(() => fsRequire.resolve('/a')).toThrow(SyntaxError);
+			expect(() => fsRequire.resolve('/a')).toThrow(expect.objectContaining({
+				code: 'ERR_INVALID_PACKAGE_CONFIG',
+				cause: expect.any(SyntaxError),
+			}));
 		});
 
 		test('implicit index.js', () => {
@@ -266,6 +271,20 @@ describe('resolve', () => {
 				code: 'ERR_INVALID_PACKAGE_CONFIG',
 			}));
 		}
+	});
+
+	// Without a caller file, relative requests stay relative to the file-system's
+	// own working directory, so a package's main must not become absolute
+	test('relative package main without a caller file', () => {
+		const vol = Volume.fromJSON({
+			'./pkg/package.json': '{"main":"entry.js"}',
+			'./pkg/entry.js': 'module.exports = {};',
+		});
+		const createWithoutCaller = vm.runInThisContext('(create, fs) => create(fs)');
+		const fsRequire = createWithoutCaller(createFsRequire, vol);
+
+		expect(fsRequire.resolve('./pkg')).toBe(path.join('pkg', 'entry.js'));
+		expect(fsRequire('./pkg')).toBe(fsRequire('./pkg/entry.js'));
 	});
 
 	// The resolved path is the cache key, so aliases of one file must match

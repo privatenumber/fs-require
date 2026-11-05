@@ -6,11 +6,15 @@ The resolver follows the file and directory parts of the [Node.js v26.13.0 Commo
 
 1. Try the exact path, then the path with `.js` and `.json` appended, in that order. A candidate must exist and not be a directory.
 2. If the path is a directory, parse its `package.json` if that is a file. For a non-empty string `main`, try the main path as a file, then its exact `index.js` and `index.json` files. Other `main` values are ignored.
-3. If there is no matching main, try the original directory's exact `index.js` and `index.json` files. Node.js documents the fallback after an unresolved main as deprecated. An invalid `package.json` parse error propagates.
+3. If there is no matching main, try the original directory's exact `index.js` and `index.json` files. Node.js documents the fallback after an unresolved main as deprecated. Malformed JSON in `package.json` throws `ERR_INVALID_PACKAGE_CONFIG`, with the `SyntaxError` as its `cause`.
 
 Index names are exact: `index.js.json` is not an index. Bare requests continue to use the behavior documented in [bare-specifier-resolution.md](./bare-specifier-resolution.md). Requests beginning with `.` or `/`, and platform-absolute requests detected by `path.isAbsolute()`, use the supplied file-system. Windows absolute-path classification is not covered by CI.
 
 ## Scope and limitations
+
+- Resolution isn't cached: every `fsRequire()` call resolves its request again, including reading `package.json`. Node.js caches resolutions per request. fs-require re-resolves so that a test can change the virtual file-system, delete the entry from `fsRequire.cache`, and require again. As a result, a `package.json` that becomes malformed after its module is cached makes the next `fsRequire()` of that directory throw.
+- Only `main` is read from `package.json`. Node.js v26 also rejects invalid `name` and `type` values ([`node_modules.cc` L148-L156](https://github.com/nodejs/node/blob/v26.13.0/src/node_modules.cc#L148-L156)); fs-require doesn't use those fields, so it doesn't validate them.
+- Without a caller file, relative requests and a relative package's `main` stay relative, normalized with `path.normalize()` and `path.join()`, so the file-system resolves them from its own working directory.
 
 - The resolver does not try native `.node` addons or detect ESM. fs-require runs non-JSON files as CommonJS.
 - It does not apply `package.json` `exports` to relative paths.
@@ -36,6 +40,7 @@ On Node.js v26.13.0, macOS arm64, each scenario below was created in a separate 
 | `pkg/package.json` with `{"main":5}`, `pkg/index.js`; resolve `pkg` | `pkg/index.js` | `pkg/index.js` |
 | `pkg/package.json` with `null`, `pkg/index.js`; resolve `pkg` | `ERR_INVALID_PACKAGE_CONFIG` | `ERR_INVALID_PACKAGE_CONFIG` |
 | `pkg/package.json` with `[]` or `5`, `pkg/index.js`; resolve `pkg` | `ERR_INVALID_PACKAGE_CONFIG` | `ERR_INVALID_PACKAGE_CONFIG` |
+| `pkg/package.json` with malformed JSON (`{`), `pkg/index.js`; resolve `pkg` | `ERR_INVALID_PACKAGE_CONFIG` | `ERR_INVALID_PACKAGE_CONFIG` |
 | `pkg/package.json` with a UTF-8 byte order mark before `{"main":"entry.js"}`, `pkg/entry.js`; resolve `pkg` | `pkg/entry.js` | `pkg/entry.js` |
 | `a.js` and `a/index.js`; resolve `a/` and `a/.` | `a/index.js` | `a/index.js` |
 | `pkg/package.json` with `{"main":null}`, `pkg/index.js`; resolve `pkg` | `pkg/index.js` | `pkg/index.js` |

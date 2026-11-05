@@ -131,8 +131,8 @@ describe('resolve', () => {
 	});
 
 	describe('resolve package', () => {
-		// A resolved path would be read from the virtual file-system, so the
-		// specifier is the ID that loads the package
+		// fsRequire() reads absolute paths from the file-system, so a package's
+		// resolved path wouldn't load it. The specifier does
 		test('returns the specifier, which fsRequire() loads', () => {
 			const vol = Volume.fromJSON({});
 			const fsRequire = createFsRequire(vol);
@@ -141,24 +141,12 @@ describe('resolve', () => {
 			expect(fsRequire(fsRequire.resolve('memfs'))).toBe(fsRequire('memfs'));
 		});
 
-		test('missing package throws MODULE_NOT_FOUND', () => {
+		// Wrappers that load packages from elsewhere forward resolve()
+		test('does not check that the package exists', () => {
 			const vol = Volume.fromJSON({});
 			const fsRequire = createFsRequire(vol);
 
-			expect(() => fsRequire.resolve('missing-package')).toThrow(expect.objectContaining({
-				code: 'MODULE_NOT_FOUND',
-			}));
-		});
-
-		test('fs subpath the shim does not provide', () => {
-			const vol = Volume.fromJSON({});
-			const fsRequire = createFsRequire(vol);
-
-			expect(fsRequire.resolve('node:fs')).toBe('node:fs');
-			expect(fsRequire.resolve('fs/promises')).toBe('fs/promises');
-			expect(() => fsRequire.resolve('fs/missing')).toThrow(expect.objectContaining({
-				code: 'MODULE_NOT_FOUND',
-			}));
+			expect(fsRequire.resolve('missing-package')).toBe('missing-package');
 		});
 	});
 });

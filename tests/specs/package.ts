@@ -91,15 +91,7 @@ export const packageSpec = (nodePath: string) => describe('package', () => {
 			'index.cjs': `
 				const fs = require('fs');
 				const { createFsRequire } = require('fs-require');
-				const fsRequire = createFsRequire(fs);
-				process.stdout.write(JSON.stringify([
-					fsRequire('./virtual'),
-					fsRequire.resolve('dependency'),
-
-					// Node.js 12 can't resolve these, but the fs shim provides them
-					fsRequire.resolve('node:fs'),
-					fsRequire.resolve('fs/promises'),
-				]));
+				process.stdout.write(createFsRequire(fs)('./virtual'));
 			`,
 			'index.mjs': `
 				import fs from 'fs';
@@ -112,7 +104,7 @@ export const packageSpec = (nodePath: string) => describe('package', () => {
 		});
 
 		const cjs = await spawn(nodePath, [fixture.getPath('index.cjs')]);
-		expect(JSON.parse(cjs.stdout)).toStrictEqual(['dependency', 'dependency', 'node:fs', 'fs/promises']);
+		expect(cjs.stdout).toBe('dependency');
 
 		const esm = await spawn(nodePath, [fixture.getPath('index.mjs')]);
 		expect(esm.stdout).toBe('dependency');

@@ -1,6 +1,6 @@
 # Bare specifier resolution
 
-A bare specifier such as `require('lodash')` inside a virtual module resolves from the file that called `createFsRequire()`, through `createRequire(callerFilename)`. That is the same base that [caller-relative-resolution.md](./caller-relative-resolution.md) uses for relative paths. When the caller has no file, such as `node -e`, it resolves from fs-require's own location. The `fs` shim (`require('fs')` and `require('fs/promises')`) is handled before this step. `fsRequire.resolve()` checks a bare specifier with the same `require` and returns the specifier unchanged; see [`fsRequire.resolve()`](#fsrequireresolve).
+A bare specifier such as `require('lodash')` inside a virtual module resolves from the file that called `createFsRequire()`, through `createRequire(callerFilename)`. That is the same base that [caller-relative-resolution.md](./caller-relative-resolution.md) uses for relative paths. When the caller has no file, such as `node -e`, it resolves from fs-require's own location. The `fs` shim (`require('fs')` and `require('fs/promises')`) is handled before this step. `fsRequire.resolve()` returns a bare specifier unchanged; see [`fsRequire.resolve()`](#fsrequireresolve).
 
 - Implementation: `createCallerRequire()` in [`src/resolve-bare-specifier.ts`](../../src/resolve-bare-specifier.ts), created once per `createFsRequire()` call in [`src/index.ts`](../../src/index.ts).
 - Contract: the "bare specifiers resolve from the caller" test in [`tests/specs/package.ts`](../../tests/specs/package.ts), for CommonJS and ESM callers, on the current Node.js version and on Node.js 12.22.12 in CI. The "resolve package" tests in [`tests/specs/resolve.ts`](../../tests/specs/resolve.ts) cover `fsRequire.resolve()`.
@@ -41,13 +41,13 @@ When virtual files are on the real disk and come from another project than the c
 
 ## `fsRequire.resolve()`
 
-For a bare specifier, `fsRequire.resolve()` checks that it resolves, then returns the specifier unchanged. It throws `MODULE_NOT_FOUND` when `fsRequire()` couldn't load it: a package that `callerRequire.resolve()` can't find, or an `fs` subpath the shim doesn't provide. Shimmed `fs` specifiers skip Node.js resolution.
+For a bare specifier, `fsRequire.resolve()` returns the specifier unchanged and doesn't check that it resolves. This is the behavior since v1.
 
-Decided 2026-11-06, verified on Node.js v26.13.0 (macOS arm64). Implementation: `resolveBareSpecifier()` in [`src/resolve-bare-specifier.ts`](../../src/resolve-bare-specifier.ts). Contract: the "resolve package" tests in [`tests/specs/resolve.ts`](../../tests/specs/resolve.ts) and the "bare specifiers resolve from the caller" test in [`tests/specs/package.ts`](../../tests/specs/package.ts).
+Decided 2026-11-06, verified on Node.js v26.13.0 (macOS arm64). Contract: the "resolve package" tests in [`tests/specs/resolve.ts`](../../tests/specs/resolve.ts).
 
 ### Why not return the resolved path, like Node.js
 
-Node.js documents `require.resolve()` as using "the internal `require()` machinery to look up the location of a module, but rather than loading the module, just return the resolved filename", and "If the module can not be found, a `MODULE_NOT_FOUND` error is thrown" ([`modules.md` L996-L1019 at v26.13.0](https://github.com/nodejs/node/blob/v26.13.0/doc/api/modules.md#L996-L1019)). So the returned value is an ID that `require()` loads as the same module. fs-require keeps that invariant, `fsRequire(fsRequire.resolve(x))` loads what `fsRequire(x)` loads, and the resolved path breaks it.
+Node.js documents `require.resolve()` as using "the internal `require()` machinery to look up the location of a module, but rather than loading the module, just return the resolved filename" ([`modules.md` L996-L1019 at v26.13.0](https://github.com/nodejs/node/blob/v26.13.0/doc/api/modules.md#L996-L1019)). So the returned value is an ID that `require()` loads as the same module. fs-require keeps that invariant: `fsRequire(fsRequire.resolve(x))` loads what `fsRequire(x)` loads.
 
 fs-require has two namespaces: an absolute path names a file in the virtual file-system, and a bare specifier names a real module loaded by Node.js. The resolved path of a real package is an absolute path, so `fsRequire()` reads it from the virtual file-system. Observed with a build that returned the resolved path:
 
@@ -60,13 +60,13 @@ fs-require has two namespaces: an absolute path names a file in the virtual file
 
 - With the real `fs`, the file exists, so fs-require ran the package's entry file as a virtual module. Its own `require('@jsonjoy.com/fs-node')` then resolved from the caller instead of from memfs, and failed with `Cannot find module '@jsonjoy.com/fs-node'`. When it doesn't fail, it creates a second instance of the package outside Node.js's module cache.
 
-A union file-system that includes the real disk, as [anansi's `createHybridRequire()`](https://github.com/ntucker/anansi/blob/136bcb5a2a3a895931200f16eeccd7c3b071b11b/packages/core/src/scripts/createHybridRequire.ts) passes to fs-require, has the second behavior. That project also forwards `fsRequire.resolve` as its own `resolve`.
+A union file-system that includes the real disk, as [anansi's `createHybridRequire()`](https://github.com/ntucker/anansi/blob/136bcb5a2a3a895931200f16eeccd7c3b071b11b/packages/core/src/scripts/createHybridRequire.ts) passes to fs-require, has the second behavior.
 
-Rejected alternatives:
+### Why not check that the package resolves
 
-- **Return the resolved path, and load absolute paths missing from the virtual file-system with the real `require`.** Real files would leak into the virtual namespace, and a path present in both, as with a union file-system, would still load as a virtual module.
-- **Return the specifier without checking it**, the behavior before v2. `resolve()` couldn't tell whether a package is installed, unlike `require.resolve()`.
+Node.js throws `MODULE_NOT_FOUND` from `require.resolve()` for a missing module, so checking with `callerRequire.resolve()` would match it more closely. It was implemented and rejected:
 
-### Node.js 12 and the fs shim
+- **It breaks a known consumer.** anansi wraps fs-require with a `require` that falls back to the project's `node_modules`, and forwards `fsRequire.resolve` as its own `resolve`. Its test expects `hybridRequire.resolve('some-module')` not to throw for a package that doesn't exist ([`hybridRequire.test.ts` L172-L193](https://github.com/ntucker/anansi/blob/136bcb5a2a3a895931200f16eeccd7c3b071b11b/packages/core/src/scripts/__tests__/hybridRequire.test.ts#L172-L193)). A check from the caller would throw for packages that the wrapper can load.
+- **It added edge cases.** The `fs` shim must skip Node.js resolution, because Node.js 12.22 can't resolve `node:fs` or `fs/promises` (added in v14.18.0 and v14.0.0). Telling `fs/promises` apart without reading the shim's `promises` property, which can be a lazy getter or `null`, needed more code than the check was worth.
 
-Shimmed specifiers must not go through Node.js resolution: Node.js 12.22 can't resolve `node:fs` (`node:` support in `require()` was added in v14.18.0) or `fs/promises` (added as a module in v14.0.0, [`fs.md` at v26.13.0](https://github.com/nodejs/node/blob/v26.13.0/doc/api/fs.md#promises-api)), but the shim provides both. The package test resolves both on Node.js 12.22.12 in CI.
+Re-evaluate if a consumer needs `resolve()` to detect missing packages.

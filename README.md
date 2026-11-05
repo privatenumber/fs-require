@@ -95,7 +95,7 @@ Type: `string`
 
 Required
 
-Path to the module you want to "resolve". Mocks Node.js [`require.resolve`](https://nodejs.org/api/modules.html#requireresolverequest-options).
+Path to the module you want to "resolve". Mocks Node.js [`require.resolve`](https://nodejs.org/api/modules.html#requireresolverequest-options): it returns the path of a file in the file-system, and throws a `MODULE_NOT_FOUND` error when the module can't be found. A package name is returned unchanged, because `fsRequire()` reads absolute paths from the file-system.
 
 ### fsRequire.cache
 

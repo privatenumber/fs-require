@@ -10,6 +10,7 @@ import type {
 import {
 	isBareSpecifier,
 	createCallerRequire,
+	requireBareSpecifier,
 	resolveBareSpecifier,
 } from './resolve-bare-specifier.ts';
 import { resolveModule } from './resolve-module.ts';
@@ -50,13 +51,13 @@ export const createFsRequire = (
 
 		const resolve = (modulePath: string) => (
 			isBareSpecifier(modulePath)
-				? callerRequire.resolve(modulePath)
+				? resolveBareSpecifier(mfs, modulePath, options, callerRequire, resolve)
 				: resolveFilePath(modulePath, resolve)
 		);
 
 		const require: fsRequire = (modulePath: string) => {
 			if (isBareSpecifier(modulePath)) {
-				return resolveBareSpecifier(mfs, modulePath, options, callerRequire, require);
+				return requireBareSpecifier(mfs, modulePath, options, callerRequire, require);
 			}
 
 			const filePath = resolveFilePath(modulePath, require);

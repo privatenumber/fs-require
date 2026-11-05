@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import { describe, test, expect } from 'manten';
 import { Volume } from 'memfs';
 import { createFsRequire } from '#fs-require';
@@ -132,19 +131,34 @@ describe('resolve', () => {
 	});
 
 	describe('resolve package', () => {
-		test('resolves from the caller, like require.resolve()', () => {
+		// A resolved path would be read from the virtual file-system, so the
+		// specifier is the ID that loads the package
+		test('returns the specifier, which fsRequire() loads', () => {
 			const vol = Volume.fromJSON({});
 			const fsRequire = createFsRequire(vol);
 
-			const require = createRequire(import.meta.url);
-			expect(fsRequire.resolve('memfs')).toBe(require.resolve('memfs'));
+			expect(fsRequire.resolve('memfs')).toBe('memfs');
+			expect(fsRequire(fsRequire.resolve('memfs'))).toBe(fsRequire('memfs'));
 		});
 
-		test('missing package', () => {
+		test('missing package throws MODULE_NOT_FOUND', () => {
 			const vol = Volume.fromJSON({});
 			const fsRequire = createFsRequire(vol);
 
-			expect(() => fsRequire.resolve('missing-package')).toThrow('Cannot find module \'missing-package\'');
+			expect(() => fsRequire.resolve('missing-package')).toThrow(expect.objectContaining({
+				code: 'MODULE_NOT_FOUND',
+			}));
+		});
+
+		test('fs subpath the shim does not provide', () => {
+			const vol = Volume.fromJSON({});
+			const fsRequire = createFsRequire(vol);
+
+			expect(fsRequire.resolve('node:fs')).toBe('node:fs');
+			expect(fsRequire.resolve('fs/promises')).toBe('fs/promises');
+			expect(() => fsRequire.resolve('fs/missing')).toThrow(expect.objectContaining({
+				code: 'MODULE_NOT_FOUND',
+			}));
 		});
 	});
 });

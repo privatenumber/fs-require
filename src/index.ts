@@ -11,6 +11,7 @@ import type {
 import { isBareSpecifier, resolveBareSpecifier } from './resolve-bare-specifier.ts';
 import { resolveModule } from './resolve-module.ts';
 import { getCallerFilename } from './utils/get-caller-filename.ts';
+import { createModuleNotFoundError } from './utils/module-not-found-error.ts';
 
 export type {
 	FileSystemLike as FileSystem,
@@ -70,15 +71,21 @@ export const createFsRequire = (
 				return modulePath;
 			}
 			const resolved = resolveModule(mfs, modulePath, parentFilename);
+			if (!resolved) {
+				throw createModuleNotFoundError(modulePath, resolve);
+			}
 			return resolved.filePath;
 		};
 
 		const require: fsRequire = (modulePath: string) => {
 			if (isBareSpecifier(modulePath)) {
-				return resolveBareSpecifier(mfs, modulePath, options);
+				return resolveBareSpecifier(mfs, modulePath, options, require);
 			}
 
 			const resolvedPath = resolveModule(mfs, modulePath, parentFilename);
+			if (!resolvedPath) {
+				throw createModuleNotFoundError(modulePath, require);
+			}
 			const { filePath } = resolvedPath;
 
 			let importedModule = moduleCache[filePath];

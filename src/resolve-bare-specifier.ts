@@ -14,7 +14,8 @@ const realRequire = require;
 export const resolveBareSpecifier = (
 	mfs: FileSystemLike,
 	modulePath: string,
-	options?: Options,
+	options: Options | undefined,
+	stackStartFunction: (...arguments_: never[]) => unknown,
 ) => {
 	const [moduleName, moduleSubpath] = parseBareSpecifier(modulePath) ?? [];
 
@@ -33,7 +34,7 @@ export const resolveBareSpecifier = (
 				return shimFs.promises;
 			}
 
-			throw createModuleNotFoundError(modulePath);
+			throw createModuleNotFoundError(modulePath, stackStartFunction);
 		}
 	}
 

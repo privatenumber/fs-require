@@ -1,33 +1,21 @@
-import { describe, skip } from 'manten';
+import { describe } from 'manten';
 import getNode from 'get-node';
-import { createNode } from './utils/node.ts';
 import { packageSpec } from './specs/package.ts';
-
-// The oldest version is the build target in package.json#scripts.build
-const nodeVersions = ['12.22.12', '14', '16', '18', '20', '22', '24'];
 
 describe('fs-require', () => {
 	import('./specs/fs-require.ts');
 	import('./specs/resolve.ts');
 
 	describe(`Node.js ${process.version}`, () => {
-		packageSpec(createNode(() => process.execPath));
+		packageSpec(process.execPath);
 	});
 
-	for (const version of nodeVersions) {
-		describe(`Node.js ${version}`, () => {
-			if (
-				process.platform === 'darwin'
-				&& process.arch === 'arm64'
-				&& Number.parseInt(version, 10) < 16
-			) {
-				skip('Node.js has no darwin-arm64 build before v16');
-			}
-
-			packageSpec(createNode(async () => {
-				const node = await getNode(version);
-				return node.path;
-			}));
+	// The oldest version in package.json#engines. CI only, because Node.js
+	// has no darwin-arm64 binaries before v16
+	if (process.env.CI) {
+		describe('Node.js 12.22.12', async () => {
+			const node = await getNode('12.22.12');
+			packageSpec(node.path);
 		});
 	}
 });

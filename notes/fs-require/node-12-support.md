@@ -1,6 +1,6 @@
 # Node.js 12.22 support
 
-The published build supports Node.js 12.22 and newer, as `package.json#engines` declares. `pkgroll --target=node12.22.12` in `package.json#scripts.build` builds for that floor, and the test suite runs the built package on Node.js 12.22.12 and every later LTS major in CI. Development and the rest of the toolchain use the version in `package.json#devEngines.runtime`.
+The published build supports Node.js 12.22 and newer, as `package.json#engines` declares. `pkgroll --target=node12.22.12` in `package.json#scripts.build` builds for that floor, and CI runs the built package on Node.js 12.22.12. Development and the rest of the toolchain use the version in `package.json#devEngines.runtime`.
 
 Last verified 2026-11-05 with pkgroll 2.29.0 (esbuild 0.28.2) on Node.js v26.13.0.
 
@@ -15,15 +15,15 @@ The ESM build imports `createRequire` from `node:module`, which pkgroll injects 
 
 ## How the floor is tested
 
-[`tests/specs/package.ts`](../../tests/specs/package.ts) creates projects with [fs-fixture](https://github.com/privatenumber/fs-fixture) that link `node_modules/fs-require` to the repository. Each project loads the package through `package.json#exports`, the same way an installed copy loads it, and runs in a child process on each version listed in [`tests/index.ts`](../../tests/index.ts). [get-node](https://github.com/ehmicky/get-node) downloads the binaries.
+[`tests/specs/package.ts`](../../tests/specs/package.ts) creates projects with [fs-fixture](https://github.com/privatenumber/fs-fixture) that link `node_modules/fs-require` to the repository. Each project loads the package through `package.json#exports`, the same way an installed copy loads it, and runs in a child process. [`tests/index.ts`](../../tests/index.ts) runs these tests on the current Node.js version and on Node.js 12.22.12, which [get-node](https://github.com/ehmicky/get-node) downloads. Versions between the floor and the current version are not tested: the risk is APIs and syntax missing from the floor, and nothing in `src/` depends on behavior that changed between later majors.
 
 The test runner itself runs on the development Node.js version. Only the fixture code runs on old versions, so fixtures use `require('fs')`, not `require('node:fs')`.
 
-Node.js has no darwin-arm64 binaries before v16. get-node reported `No Node.js binaries available for 14.21.3 on darwin arm64`, and the same for 12.22.12. On Apple Silicon, `tests/index.ts` skips those versions, and they show as skipped (`○`) in the output. CI runs on Linux x64, where every version runs.
+The Node.js 12.22.12 tests run only when `CI` is set. Node.js has no darwin-arm64 binaries before v16: get-node reported `No Node.js binaries available for 12.22.12 on darwin arm64`. CI runs on Linux x64.
 
-A temporary change that made `getCallerFilename()` return `undefined` failed the package tests on every version that ran (18 failures on macOS arm64). So the matrix detects a regression in caller resolution, not only load errors.
+A temporary change that made `getCallerFilename()` return `undefined` failed every package test on each Node.js version that ran (16 through 26, on macOS arm64). So these tests detect a regression in caller resolution, not only load errors.
 
 ## Re-evaluate when
 
-- The floor is raised. Then update `engines.node`, the build target, the oldest entry in `tests/index.ts`, and the two lint overrides.
+- The floor is raised. Then update `engines.node`, the build target, the version in `tests/index.ts`, and the two lint overrides.
 - esbuild adds an option to strip `node:` for old targets, which would make the `n/prefer-node-protocol` override unnecessary.

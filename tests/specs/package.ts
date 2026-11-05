@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'manten';
+import spawn from 'nano-spawn';
 import { createProject } from '../utils/fixture.ts';
-import type { Node } from '../utils/node.ts';
 
 /**
  * Loads the built package through package.json#exports in a child process,
@@ -9,7 +9,7 @@ import type { Node } from '../utils/node.ts';
  * Fixture code runs on the oldest supported Node.js version, so it avoids
  * `node:` specifiers in require() (added in v14.18.0)
  */
-export const packageSpec = (node: Node) => describe('package', () => {
+export const packageSpec = (nodePath: string) => describe('package', () => {
 	test('require() entry point', async () => {
 		await using fixture = await createProject({
 			'index.cjs': `
@@ -36,7 +36,7 @@ export const packageSpec = (node: Node) => describe('package', () => {
 			'virtual/data.json': '{"value":1}',
 		});
 
-		const { stdout } = await node(fixture.getPath('index.cjs'));
+		const { stdout } = await spawn(nodePath, [fixture.getPath('index.cjs')]);
 		expect(JSON.parse(stdout)).toStrictEqual({
 			json: { value: 1 },
 			builtin: 'function',
@@ -56,7 +56,7 @@ export const packageSpec = (node: Node) => describe('package', () => {
 			'file.js': 'module.exports = "esm caller";',
 		});
 
-		const { stdout } = await node(fixture.getPath('index.mjs'));
+		const { stdout } = await spawn(nodePath, [fixture.getPath('index.mjs')]);
 		expect(stdout).toBe('esm caller');
 	});
 
@@ -76,7 +76,7 @@ export const packageSpec = (node: Node) => describe('package', () => {
 			`,
 		});
 
-		const { stdout } = await node(fixture.getPath('main.cjs'));
+		const { stdout } = await spawn(nodePath, [fixture.getPath('main.cjs')]);
 		expect(stdout).toBe('b/file');
 	});
 });

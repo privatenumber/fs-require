@@ -29,11 +29,11 @@ Tests and tooling use the development Node.js version, so `tests/` can use moder
 `pnpm test` builds first, because the tests run the built package:
 
 - `tests/specs/fs-require.ts` and `tests/specs/resolve.ts` run in-process with [memfs](https://github.com/streamich/memfs). They import `#fs-require`, which resolves to `dist/index.cjs` at runtime and to `src/index.ts` for type-checking.
-- `tests/specs/package.ts` runs fixture projects in child processes. Each project loads fs-require through `package.json#exports`, on every Node.js version listed in `tests/index.ts`. Use it for behavior that depends on the module system, the caller's file, or the Node.js version.
+- `tests/specs/package.ts` runs fixture projects in child processes. Each project loads fs-require through `package.json#exports`, on the current Node.js version and, in CI, on Node.js 12.22.12. Use it for behavior that depends on the module system, the caller's file, or the Node.js version.
 
 Fixture code in `tests/specs/package.ts` runs on Node.js 12.22, so it must not use `require('node:*')` or newer syntax.
 
-On Apple Silicon, Node.js versions before 16 have no binaries, so those groups show as skipped. CI runs them on Linux.
+The Node.js 12.22.12 tests run only when `CI` is set, because Node.js has no darwin-arm64 binaries before v16.
 
 ## Engineering notes
 

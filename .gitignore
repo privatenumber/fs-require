@@ -27,3 +27,6 @@ dist
 
 # Cache
 .eslintcache
+
+# Agent skill links from dependencies (managed by pnpm)
+/.agents/skills/

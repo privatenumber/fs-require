@@ -3,10 +3,10 @@
 Relative paths passed to the function that `createFsRequire()` returns resolve from the directory of the file that called `createFsRequire()`. fs-require finds that file by reading the call stack with the V8 stack trace API. It does not use `module.parent`.
 
 - Implementation: [`src/utils/get-caller-filename.ts`](../../src/utils/get-caller-filename.ts), used at the end of `createFsRequire()` in [`src/index.ts`](../../src/index.ts).
-- Contract: the "Relative paths resolve from the caller" tests in [`tests/specs/fs-require.ts`](../../tests/specs/fs-require.ts), with fixtures in [`tests/fixtures/caller-relative/`](../../tests/fixtures/caller-relative/).
+- Contract: the "relative paths resolve from the caller, not the first importer" and "import entry point" tests in [`tests/specs/package.ts`](../../tests/specs/package.ts), which run in a child process on the current Node.js version and, in CI, on Node.js 12.22.12.
 - Relative requires inside virtual modules are unaffected. They resolve from the requiring virtual module's `filename`.
 
-Last verified 2026-11-05 on Node.js v26.13.0 (macOS arm64). CI also runs the suite on Node.js 12.22.12, the build target.
+Last verified 2026-11-05 on Node.js v26.13.0 (macOS arm64). CI also runs the package tests on Node.js 12.22.12, the build target (see [node-12-support.md](./node-12-support.md)).
 
 ## Why not `module.parent`
 
